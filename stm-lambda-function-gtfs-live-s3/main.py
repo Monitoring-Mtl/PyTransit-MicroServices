@@ -1,0 +1,62 @@
+from google.protobuf.json_format import MessageToDict
+import json
+import boto3
+from google.transit import gtfs_realtime_pb2
+from urllib.request import Request, urlopen
+from datetime import datetime, timedelta
+import gzip
+import pytz
+
+# Define the URL of the API
+api_url = "https://api.stm.info/pub/od/gtfs-rt/ic/v2/vehiclePositions"
+api_key = "l75d9e2b6515514ce189d290c420345c0e"
+
+# Set up the request headers with the API key
+headers = {
+    "apikey": api_key
+}
+
+# Set up S3
+s3 = boto3.client('s3')
+bucket_name = 'monitoring-mtl-stm-gtfs-data-2'
+
+
+def lambda_handler(event, context):
+    fetch_data()
+    return {"status": "success"}
+
+
+def fetch_data():
+    eastern = pytz.timezone('America/Toronto')
+    now = datetime.now(eastern)
+    fetch_time_unix = int(now.timestamp())
+    folder_name = now.strftime('%Y-%m-%d')
+
+    feed = gtfs_realtime_pb2.FeedMessage()
+    request = Request(api_url)
+    request.add_header('apikey', api_key)
+    try:
+        response = urlopen(request)
+    except Exception as e:
+        print(f"Failed to make the request: {e}")
+        return
+
+    feed.ParseFromString(response.read())
+
+    # Convert the feed object to a JSON-serializable dictionary
+    json_data_dict = MessageToDict(feed)
+
+    # Serialize the dictionary to a JSON string
+    json_data = json.dumps(json_data_dict)
+
+    # Compress the JSON data using gzip
+    json_data_gzipped = gzip.compress(json_data.encode('utf-8'))
+
+    # Define S3 object name
+    object_name = f'{folder_name}/gtfs_data_{fetch_time_unix}.json.gz'  
+    try:
+        # Store the gzipped JSON object in S3
+        s3.put_object(Bucket=bucket_name, Key=object_name, Body=json_data_gzipped)
+        print(f'Successfully stored {object_name} in S3.')
+    except Exception as e:
+        print(f'Failed to store {object_name} in S3 due to an exception: {e}')
