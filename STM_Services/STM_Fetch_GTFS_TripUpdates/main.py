@@ -8,7 +8,7 @@ import gzip
 import pytz
 
 # Define the URL of the API
-api_url = "${{ secrets.API_URL_STM_VEHICLE }}"
+api_url = "${{ secrets.API_URL_STM_TRIP }}"
 api_key = "${{ secrets.API_KEY_STM }}"
 
 # Set up the request headers with the API key
@@ -18,7 +18,7 @@ headers = {
 
 # Set up S3
 s3 = boto3.client('s3')
-bucket_name = 'monitoring-mtl-stm-gtfs-data-2'
+bucket_name = 'monitoring-mtl-stm-gtfs-trip-update'
 
 
 def lambda_handler(event, context):
@@ -52,7 +52,7 @@ def fetch_data():
     # Compress the JSON data using gzip
     json_data_gzipped = gzip.compress(json_data.encode('utf-8'))
 
-    # Define S3 object name 
+    # Define S3 object name
     object_name = f'{folder_name}/gtfs_data_{fetch_time_unix}.json.gz'  
     try:
         # Store the gzipped JSON object in S3
