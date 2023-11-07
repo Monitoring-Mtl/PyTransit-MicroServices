@@ -8,8 +8,8 @@ import gzip
 import pytz
 
 # Define the URL of the API
-api_url = "https://api.stm.info/pub/od/gtfs-rt/ic/v2/vehiclePositions"
-api_key = "l75d9e2b6515514ce189d290c420345c0e"
+api_url = "${{ secrets.API_URL_STM }}"
+api_key = "${{ secrets.API_KEY_STM }}"
 
 # Set up the request headers with the API key
 headers = {
