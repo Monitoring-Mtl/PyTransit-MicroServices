@@ -16,6 +16,11 @@ def lambda_handler(event, context):
     trips_file_path = 'trips/trips.csv'
     stop_times_file_path = 'stop_times/stop_times.csv'
 
+    current_date = datetime.now().strftime('%Y%m%d')
+    current_day_of_week = datetime.now().strftime('%A').lower()
+
+    folder_name = datetime.now().strftime('%Y-%m-%d')
+    output_base_path = f"{folder_name}/"
 
     def read_csv_from_s3(bucket, key):
         response = s3.get_object(Bucket=bucket, Key=key)
@@ -24,25 +29,24 @@ def lambda_handler(event, context):
     def write_df_to_csv_on_s3(df, bucket, key):
         csv_buffer = StringIO()
         df.to_csv(csv_buffer, index=False)
-        s3.put_object(Bucket=bucket, Key=key, Body=csv_buffer.getvalue())
+        full_key = f"{output_base_path}{key}"  # Prepend the base path
+        s3.put_object(Bucket=bucket, Key=full_key, Body=csv_buffer.getvalue())
 
     # Load calendar.csv from s3 into a DataFrame
     calendar_df = read_csv_from_s3(input_bucket, calendar_file_path)
 
-    current_date = datetime.now().strftime('%Y%m%d')
-    curent_day_of_week = datetime.now().strftime('%A').lower()
-
-    output_base_path = f"{current_date}/"
-
     calendar_df[calendar_df.columns[1:8]] = calendar_df[calendar_df.columns[1:8]].astype(int)
+
     # Filter to keep only the row where "start_date" is older or equal to the "current_date" and "end_date" is further or equal the "current_date"
     calendar_df = calendar_df[(calendar_df['start_date'].astype(str) <= current_date) & (calendar_df['end_date'].astype(str) >= current_date)]
-    # Filter to keep only the value that correspond to the "current_day_of_week"
-    calendar_df = calendar_df[calendar_df[curent_day_of_week] == 1]
-    # We only keep the values of service_id that correspond to all the filter
+
+    # Filter to keep only the value that corresponds to the "current_day_of_week"
+    calendar_df = calendar_df[calendar_df[current_day_of_week] == 1]
+
+    # We only keep the values of service_id that correspond to all the filters
     service_ids_df = calendar_df['service_id']
 
-    write_df_to_csv_on_s3(services_ids_df, output_bucket, 'service_ids/service_ids.csv')
+    write_df_to_csv_on_s3(service_ids_df, output_bucket, 'service_ids/service_ids.csv')
 
     # Load trips.csv from S3 into DataFrame
     trips_df = read_csv_from_s3(input_bucket, trips_file_path)
