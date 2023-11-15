@@ -15,3 +15,8 @@ Service Python qui permet de récupérer les données GTFS Live pour les positio
 
 Service Python qui permet de récupérer les fichiers static GTFS de la STM et de les déposer dans un bucket S3 selon une structure de répertoire. La fonction 
 valide si les fichiers présents sont les derniers à jour, sinon elle récupère les nouveaux fichiers et les met à jour.
+
+## STM_Filter_Daily_GTFS_Static_files
+
+Service Python qui permet de créer la liste de service_id, de trip_id et de stop_times valident pour la journée à partir des fichier static. Et de les déposer dans un nouveau 
+bucket S3. 
