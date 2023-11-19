@@ -1,6 +1,7 @@
 # PyTransit-MicroServices
 Services Python pour récupérer et analyser les données
 
+
 ## STM_Fetch_GTFS_TripUpdates
 
 Service Python qui permet de récupérer les données GTFS Live pour l'estimation des horaires de la STM et d'enregistrer le fichier JSON de réponse dans un format GZIP (afin de diminuer l'espace requis) dans un bucket S3 dans un répertoire correspondant à la date de la journée.
@@ -20,3 +21,9 @@ valide si les fichiers présents sont les derniers à jour, sinon elle récupèr
 
 Service Python qui permet de créer la liste de service_id, de trip_id et de stop_times valident pour la journée à partir des fichier static. Et de les déposer dans un nouveau 
 bucket S3. 
+
+
+## STM_Analyse_Daily_Stops_Data
+
+Service Python qui permet de d'analyser le Delta des autobus par rapport au temps prévu d'arrivé aux arrêts. Il récupère également l'information concernant le niveau d'occupation 
+des autobus 
