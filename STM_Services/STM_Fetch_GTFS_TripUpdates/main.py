@@ -6,24 +6,20 @@ from urllib.request import Request, urlopen
 from datetime import datetime, timedelta
 import gzip
 import pytz
+import os
 
-# Define the URL of the API
-api_url = "${{ secrets.API_URL_STM_TRIP }}"
-api_key = "${{ secrets.API_KEY_STM }}"
-
-# Set up the request headers with the API key
-headers = {
-    "apikey": api_key
-}
+api_url = os.environ.get('API_URL_STM_TRIP')
+api_key = os.environ.get('API_KEY_STM')
 
 # Set up S3
 s3 = boto3.client('s3')
-bucket_name = 'monitoring-mtl-stm-gtfs-trip-update'
+bucket_name = ""
 
 
-def lambda_handler(event, context):
+def lambda_handler(event, context): 
+    global bucket_name 
+    bucket_name = event['bucket_name']
     fetch_data()
-    return {"status": "success"}
 
 
 def fetch_data():
@@ -40,7 +36,6 @@ def fetch_data():
     except Exception as e:
         print(f"Failed to make the request: {e}")
         return
-
     feed.ParseFromString(response.read())
 
     # Convert the feed object to a JSON-serializable dictionary
@@ -60,3 +55,4 @@ def fetch_data():
         print(f'Successfully stored {object_name} in S3.')
     except Exception as e:
         print(f'Failed to store {object_name} in S3 due to an exception: {e}')
+        raise
