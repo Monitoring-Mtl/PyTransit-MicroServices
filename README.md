@@ -1,3 +1,5 @@
+[![CC BY 4.0][cc-by-shield]][cc-by]
+
 # PyTransit-MicroServices
 Services Python pour récupérer et analyser les données
 
@@ -27,8 +29,6 @@ bucket S3.
 
 Service Python qui permet de d'analyser le Delta des autobus par rapport au temps prévu d'arrivé aux arrêts. Il récupère également l'information concernant le niveau d'occupation 
 des autobus 
-
-Shield: [![CC BY 4.0][cc-by-shield]][cc-by]
 
 This work is licensed under a
 [Creative Commons Attribution 4.0 International License][cc-by].
