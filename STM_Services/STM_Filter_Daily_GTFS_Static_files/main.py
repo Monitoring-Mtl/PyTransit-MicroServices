@@ -1,20 +1,22 @@
 import pandas as pd
 import boto3
+import os
 from datetime import datetime
 from io import StringIO
 
+#Init S3 client
+s3 = boto3.client('s3')
+
 def lambda_handler(event, context):
-    #Init S3 client
-    s3 = boto3.client('s3')
 
     #Define the bucket
-    input_bucket = 'pfe014-stm-data-static'
-    output_bucket = 'pfe014-stm-data-static-daily'
+    input_bucket = event['input_bucket']
+    output_bucket = event['output_bucket']
 
-    #Define file paths
-    calendar_file_path = 'calendar/calendar.csv'
-    trips_file_path = 'trips/trips.csv'
-    stop_times_file_path = 'stop_times/stop_times.csv'
+
+    calendar_file_path = event['calendar_file_path']
+    trips_file_path = event['trips_file_path']
+    stop_times_file_path = event['stop_times_file_path']
 
     current_date = datetime.now().strftime('%Y%m%d')
     current_day_of_week = datetime.now().strftime('%A').lower()

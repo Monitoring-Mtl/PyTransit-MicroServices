@@ -6,13 +6,18 @@ import zipfile
 import csv
 from io import StringIO, BytesIO
 
+# bucket_name = os.environ.get('BUCKET_NAME')
+# url = os.environ.get('ZIP_URL')
+
 s3 = boto3.client('s3')
-bucket_name = 'pfe014-stm-data-static'
-url = "https://www.stm.info/sites/default/files/gtfs/gtfs_stm.zip"
-last_modified_key = "Last_modified.txt"
+
+LAST_MODIFIED_KEY = "Last_modified.txt"
 
 
 def lambda_handler(event, context):
+    bucket_name = event['bucket_name']
+    url = event['url']
+
     # Step 1: On récupère la valeur du header du ZIP pour les dernières modifications
     response = requests.head(url)
     last_modified = response.headers.get('Last-Modified')
@@ -20,7 +25,7 @@ def lambda_handler(event, context):
 
     # Step 2: On valide la dernière modification dans le bucket S3 si elle existe
     try:
-        last_modified_file = s3.get_object(Bucket=bucket_name, Key=last_modified_key)
+        last_modified_file = s3.get_object(Bucket=bucket_name, Key=LAST_MODIFIED_KEY)
         last_modified_in_s3 = last_modified_file['Body'].read().decode('utf-8')
         last_modified_in_s3_date = datetime.datetime.strptime(last_modified_in_s3, '%a, %d %b %Y %H:%M:%S GMT')
 
@@ -51,7 +56,7 @@ def lambda_handler(event, context):
                     s3.put_object(Bucket=bucket_name, Key=csv_key, Body=txt_content)
 
     # Step 5: Mettre à jour le fichier "Last_modified.txt" avec la nouvelle date. 
-    s3.put_object(Bucket=bucket_name, Key=last_modified_key, Body=last_modified)
+    s3.put_object(Bucket=bucket_name, Key=LAST_MODIFIED_KEY, Body=last_modified)
 
 
 # Entry point for the Lambda function execution
