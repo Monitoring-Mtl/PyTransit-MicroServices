@@ -28,7 +28,15 @@ bucket S3.
 ## STM_Analyse_Daily_Stops_Data
 
 Service Python qui permet de d'analyser le Delta des autobus par rapport au temps prévu d'arrivé aux arrêts. Il récupère également l'information concernant le niveau d'occupation 
-des autobus 
+des autobus.
+
+
+# BIXI
+
+## BIXI_Fetch_GTFS_Station_Status
+
+Service Python qui permet de récupérer les données GBFS pour les Status de toutes les stations BIXI et d'enregistrer le fichier JSON de réponse dans un format GZIP, dans un
+bucket S3, dans un répertoire correspondant à la date de la journée.
 
 
 ## LICENSE
