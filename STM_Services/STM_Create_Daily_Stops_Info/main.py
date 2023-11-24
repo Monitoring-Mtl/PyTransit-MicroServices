@@ -18,13 +18,13 @@ def lambda_handler(event, context):
     now = datetime.now(eastern)
     folder_name = now.strftime('%Y-%m-%d')
 
-    filtered_trips_name = f'{folder_name}/filtered_trips/filtered_trips.csv'
-    filtered_trips_name = f'{folder_name}/filtered_stop_times/filtered_stop_times.csv'
+    filtered_trips_path = f'{folder_name}/filtered_trips/filtered_trips.csv'
+    filtered_stop_times_path = f'{folder_name}/filtered_stop_times/filtered_stop_times.csv'
 
     # Read the necessary files from S3
     stops_df = read_csv_from_s3(static_bucket, 'stops/stops.csv')
-    filtered_trips_df = read_csv_from_s3(daily_static_bucket, filtered_trips_name)
-    filtered_stop_times_df = read_csv_from_s3(daily_static_bucket, filtered_trips_name)
+    filtered_trips_df = read_csv_from_s3(daily_static_bucket, filtered_trips_path)
+    filtered_stop_times_df = read_csv_from_s3(daily_static_bucket, filtered_stop_times_path)
     routes_df = read_csv_from_s3(static_bucket, 'routes/routes.csv')
 
     # Process the stop times into UNIX timestamp
@@ -42,16 +42,28 @@ def lambda_handler(event, context):
         how='left'
     )
 
+    print(f'merged_df columns: {merged_df.columns}')
+    print(f'stops_df columns: {stops_df.columns}')
+
     # Merge without creating duplicate columns
-    merged_df = pd.merge(merged_df, stops_df[['stop_name', 'stop_lat', 'stop_lon', 'wheelchair_boarding']], on='stop_id', how='left')
-    merged_df = pd.merge(merged_df, routes_df[['route_id', 'route_long_name']], on='route_id')
-    ############################################################################## Rendu ici à modifier 
-    ## PrimaryKey (Route 16 ) + SortKey (arrival_time_unix) (datetime.now('America/Montreal')) -> le trip actuel ou prochain avec les stops ID + coordonnées
-    # Create the route_info column NE PAS FAIRE DE ROUTE_INFO FINALEMENT, on va créer des "Secondary Indexes" 
+    merged_df = pd.merge(
+        merged_df,
+        stops_df[['stop_id', 'stop_name', 'stop_lat', 'stop_lon', 'wheelchair_boarding']],
+        on='stop_id',
+        how='left'
+    )
+    merged_df = pd.merge(
+        merged_df, 
+        routes_df[['route_id', 'route_long_name']], 
+        on='route_id',
+        how='left'
+    )
+
+    # Create the route_info column (Ex : 16 Griffith / St-François dir. E)
     merged_df['route_info'] = merged_df.apply(create_route_info, axis=1)
     
     # Select required columns
-    final_df = merged_df[['route_info', 'trip_id', 'shape_id', 'wheelchair_accessible', 
+    final_df = merged_df[['route_id', 'route_info', 'trip_id', 'shape_id', 'wheelchair_accessible', 
                           'arrival_time_unix', 'stop_id', 'stop_name', 'stop_lat', 'stop_lon', 'wheelchair_boarding']]
 
     # Write the DataFrame to a new CSV file in S3
