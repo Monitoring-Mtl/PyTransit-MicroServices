@@ -28,20 +28,22 @@ def lambda_handler(event, context):
     # Calculate UNIX timestamp for 7:20 AM on the next day to use a Threshold when fetching from S3 bucket
     seven_twenty_am_unix = time_to_unix("07:20:00", next_day, timezone)
     
-    # Determine the folders name in format # e.g. '2023-11-09' & '2023-11-10'
-    event_date_folder = event_datetime.strftime('%Y-%m-%d')
-    next_day_folder = next_day.strftime('%Y-%m-%d')
+    # Determine the folders name in format # e.g. '2023/11/09' & '2023/11/10'
+    event_date_folder = event_datetime.strftime('%Y/%m/%d')
+    next_day_folder = next_day.strftime('%Y/%m/%d')
 
     # Create the dictionary for the GTFS Live data
     json_dict = {}
 
-    event_date_csv = event_datetime.strftime('%Y-%m-%d')
-    csv_file_name = f'{event_date_csv}/filtered_stop_times/filtered_stop_times.csv'
+    event_date_csv = event_datetime.strftime('%Y/%m/%d')
+    file_date = event_datetime.strftime('%Y-%m-%d')
+
+    csv_file_name = f'{event_date_csv}/filtered_stop_times/filtered_stop_times_{file_date}.csv'
     csv_obj = s3.get_object(Bucket=csv_bucket_name, Key=csv_file_name)
     csv_data = pd.read_csv(csv_obj['Body'])
 
     # Convert 'arrival_time' to UNIX timestamps
-    csv_data['arrival_time_unix'] = csv_data['arrival_time'].apply(lambda x: time_to_unix(x, event_datetime, timezone))
+    csv_data['arrival_time_unix'] = csv_data['arrival_time'].apply(lambda x: time_to_unix(x, file_date, timezone))
 
     # Prepare a new column for the offset
     csv_data['offset'] = None
@@ -71,7 +73,7 @@ def lambda_handler(event, context):
     csv_buffer = StringIO()
     csv_data.to_csv(csv_buffer, index=False)
     s3.put_object(Bucket=updated_files_bucket_name, Body=csv_buffer.getvalue(), Key=f'{event_date_csv}'
-                                                                                    f'/updated_filtered_stop_times_{event_date_csv}.csv')
+                                                                                    f'/updated_filtered_stop_times_{file_date}.csv')
 
 
 def process_json_files_s3(bucket_name, prefix, event_datetime, timezone, cutoff_timestamp=None):

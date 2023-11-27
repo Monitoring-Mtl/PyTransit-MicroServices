@@ -2,6 +2,7 @@ import boto3
 import pandas as pd
 from io import StringIO
 from datetime import datetime, timedelta
+import gzip
 import pytz
 
 # Initialize S3 client
@@ -16,10 +17,11 @@ def lambda_handler(event, context):
 
     eastern = pytz.timezone(local_timezone)
     now = datetime.now(eastern)
-    folder_name = now.strftime('%Y-%m-%d')
+    folder_name = now.strftime('%Y/%m/%d')
+    file_name = now.strftime('%Y-%m-%d')
 
-    filtered_trips_path = f'{folder_name}/filtered_trips/filtered_trips.csv'
-    filtered_stop_times_path = f'{folder_name}/filtered_stop_times/filtered_stop_times.csv'
+    filtered_trips_path = f'{folder_name}/filtered_trips/filtered_trips_{file_name}.csv'
+    filtered_stop_times_path = f'{folder_name}/filtered_stop_times/filtered_stop_times_{file_name}.csv'
 
     # Read the necessary files from S3 
     stops_df = read_csv_from_s3(static_bucket, 'stops/stops.csv')
@@ -66,9 +68,6 @@ def lambda_handler(event, context):
     final_df = merged_df[['route_id', 'route_info', 'trip_id', 'shape_id', 'wheelchair_accessible', 
                           'arrival_time_unix', 'stop_id', 'stop_name', 'stop_lat', 'stop_lon', 'wheelchair_boarding']]
 
-    # Create new column ttl, to use as time-to-live in DynamoDB, adding 24 hours to the supposed time of the stop.
-    final_df['ttl'] = final_df['arrival_time_unix'] + 86400
-    
     # Write the DataFrame to a new CSV file in S3
     output_file_path = f'{folder_name}/daily_stops_info/daily_stops_info.csv'
     write_df_to_csv_on_s3(final_df, output_bucket, output_file_path)
@@ -90,7 +89,16 @@ def read_csv_from_s3(bucket, key):
 def write_df_to_csv_on_s3(df, bucket, key):
     csv_buffer = StringIO()
     df.to_csv(csv_buffer, index=False)
-    s3_client.put_object(Bucket=bucket, Key=key, Body=csv_buffer.getvalue())
+
+    # Compress the CSV data using gzip
+    with gzip.GzipFile(fileobj=csv_buffer, mode='w') as gz_buffer:
+        gz_buffer.write(csv_buffer.getvalue().encode('utf-8'))
+
+    # Upload the gzipped data to S3 with a .gz extension
+    s3_key = f"{key}.gz"
+    s3_client.put_object(Bucket=bucket, Key=s3_key, Body=gz_buffer.getvalue())
+
+    return s3_key
 
 def convert_to_unix(time_str, base_date, timezone_str):
     time_parts = [int(part) for part in time_str.split(':')]
