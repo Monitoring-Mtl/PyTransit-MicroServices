@@ -10,9 +10,9 @@ s3 = boto3.client('s3')
 def lambda_handler(event, context):
 
     #Define the bucket
+    static_bucket = event['static_bucket']
     input_bucket = event['input_bucket']
     output_bucket = event['output_bucket']
-
 
     calendar_file_path = event['calendar_file_path']
     trips_file_path = event['trips_file_path']
@@ -70,3 +70,7 @@ def lambda_handler(event, context):
 
     # Write filtered_stop_times.csv to S3
     write_df_to_csv_on_s3(filtered_stop_times_df, output_bucket, 'filtered_stop_times/filtered_stop_times.csv')
+
+
+
+
