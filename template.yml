@@ -111,38 +111,48 @@ Resources:
           API_KEY_STM: !Ref ApiKeyStm
 
   STMAnalyzeDailyStopsData:
-  Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
-  Properties:
-    Timeout: 840 # Timeout in seconds
-    MemorySize: 8096
-    CodeUri: STM_Services/STM_Analyse_Daily_Stops_Data/
-    Handler: main.lambda_handler
-    Runtime: python3.9
-    Architectures:
-      - x86_64
-    Events:
-      Start:
-        Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
-        Properties:
-          Path: /filter
-          Method: get
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      Timeout: 840 # Timeout in seconds
+      MemorySize: 8096
+      CodeUri: STM_Services/STM_Analyse_Daily_Stops_Data/
+      Handler: main.lambda_handler
+      Runtime: python3.9
+      Architectures:
+        - x86_64
+      Events:
+        Start:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /filter
+            Method: get
+      Environment:
+          Variables:
+            API_URL_STM_TRIP: !Ref ApiUrlStmTrip
+            API_URL_STM_VEHICLE: !Ref ApiUrlStmVehicle
+            API_KEY_STM: !Ref ApiKeyStm
 
   STMCreateDailyStopsInfo:
-  Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
-  Properties:
-    Timeout: 60 # Timeout in seconds
-    MemorySize: 1024
-    CodeUri: STM_Services/STM_Create_Daily_Stops_Info/
-    Handler: main.lambda_handler
-    Runtime: python3.9
-    Architectures:
-      - x86_64
-    Events:
-      Start:
-        Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
-        Properties:
-          Path: /filter
-          Method: get
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      Timeout: 60 # Timeout in seconds
+      MemorySize: 1024
+      CodeUri: STM_Services/STM_Create_Daily_Stops_Info/
+      Handler: main.lambda_handler
+      Runtime: python3.9
+      Architectures:
+        - x86_64
+      Events:
+        Start:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /filter
+            Method: get
+      Environment:
+            Variables:
+              API_URL_STM_TRIP: !Ref ApiUrlStmTrip
+              API_URL_STM_VEHICLE: !Ref ApiUrlStmVehicle
+              API_KEY_STM: !Ref ApiKeyStm
     
 Outputs:
 
