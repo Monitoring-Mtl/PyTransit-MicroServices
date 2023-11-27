@@ -114,7 +114,7 @@ Resources:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       Timeout: 840 # Timeout in seconds
-      MemorySize: 8096
+      MemorySize: 8192
       CodeUri: STM_Services/STM_Analyse_Daily_Stops_Data/
       Handler: main.lambda_handler
       Runtime: python3.9
