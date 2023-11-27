@@ -21,13 +21,13 @@ def lambda_handler(event, context):
     filtered_trips_path = f'{folder_name}/filtered_trips/filtered_trips.csv'
     filtered_stop_times_path = f'{folder_name}/filtered_stop_times/filtered_stop_times.csv'
 
-    # Read the necessary files from S3
+    # Read the necessary files from S3 
     stops_df = read_csv_from_s3(static_bucket, 'stops/stops.csv')
     filtered_trips_df = read_csv_from_s3(daily_static_bucket, filtered_trips_path)
     filtered_stop_times_df = read_csv_from_s3(daily_static_bucket, filtered_stop_times_path)
     routes_df = read_csv_from_s3(static_bucket, 'routes/routes.csv')
 
-    # Process the stop times into UNIX timestamp
+    # Process the stop times into UNIX timestamp, 
     filtered_stop_times_df['arrival_time_unix'] = filtered_stop_times_df['arrival_time'].apply(lambda x: convert_to_unix(x, now, local_timezone))
 
     # Ensure data types for 'stop_id' match
