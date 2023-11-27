@@ -110,7 +110,7 @@ def convert_to_unix(time_str, base_date, timezone_str):
 
     return int(local_dt.timestamp())
 
-
+ 
 def create_route_info(row):
     # Mapping for direction translation
     direction_mapping = {'E': 'EST', 'O': 'OUEST', 'S': 'SUD', 'N': 'NORD'}
@@ -118,7 +118,7 @@ def create_route_info(row):
     # Extract the last character from trip_headsign for direction
     direction = row['trip_headsign'][-1]
 
-    # Translate direction and create route_info string
+    # Translate direction and create route_info to Identify the direction
     translated_direction = direction_mapping.get(direction, direction)
     route_info = f"{row['route_id']} {row['route_long_name']} dir. {translated_direction}"
 
