@@ -59,13 +59,16 @@ def lambda_handler(event, context):
         how='left'
     )
 
-    # Create the route_info column (Ex : 16 Griffith / St-François dir. E)
+    # Create the route_info column (Ex : 16 Griffith / St-François dir. E )
     merged_df['route_info'] = merged_df.apply(create_route_info, axis=1)
     
     # Select required columns
     final_df = merged_df[['route_id', 'route_info', 'trip_id', 'shape_id', 'wheelchair_accessible', 
                           'arrival_time_unix', 'stop_id', 'stop_name', 'stop_lat', 'stop_lon', 'wheelchair_boarding']]
 
+    # Create new column ttl, to use as time-to-live in DynamoDB, adding 24 hours to the supposed time of the stop.
+    final_df['ttl'] = final_df['arrival_time_unix'] + 86400
+    
     # Write the DataFrame to a new CSV file in S3
     output_file_path = f'{folder_name}/daily_stops_info/daily_stops_info.csv'
     write_df_to_csv_on_s3(final_df, output_bucket, output_file_path)
