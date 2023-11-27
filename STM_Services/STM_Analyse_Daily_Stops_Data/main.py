@@ -9,6 +9,7 @@ from io import StringIO
 s3 = boto3.client('s3')
 
 def lambda_handler(event, context):
+    # NEEDS TO HAVE 8192MB of memory
     # Define some variables based on the event.
     json_bucket_name = event['json_bucket_name']
     csv_bucket_name = event['csv_bucket_name']
