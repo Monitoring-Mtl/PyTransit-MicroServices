@@ -124,7 +124,7 @@ Resources:
         Start:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
-            Path: /filter
+            Path: /AnalyzeDailyStopsData
             Method: get
       Environment:
           Variables:
@@ -146,7 +146,7 @@ Resources:
         Start:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
-            Path: /filter
+            Path: /CreateDailyStopsInfo
             Method: get
       Environment:
             Variables:
