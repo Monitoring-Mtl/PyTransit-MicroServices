@@ -21,7 +21,9 @@ def lambda_handler(event, context):
     current_date = datetime.now().strftime('%Y%m%d')
     current_day_of_week = datetime.now().strftime('%A').lower()
 
-    folder_name = datetime.now().strftime('%Y-%m-%d')
+    folder_name = datetime.now().strftime('%Y/%m/%d')
+    file_name = datetime.now().strftime('%Y-%m-%d')
+
     output_base_path = f"{folder_name}/"
 
     def read_csv_from_s3(bucket, key):
@@ -48,7 +50,7 @@ def lambda_handler(event, context):
     # We only keep the values of service_id that correspond to all the filters
     service_ids_df = calendar_df['service_id']
 
-    write_df_to_csv_on_s3(service_ids_df, output_bucket, 'service_ids/service_ids.csv')
+    write_df_to_csv_on_s3(service_ids_df, output_bucket, f'service_ids/service_ids_{file_name}.csv')
 
     # Load trips.csv from S3 into DataFrame
     trips_df = read_csv_from_s3(input_bucket, trips_file_path)
@@ -57,7 +59,7 @@ def lambda_handler(event, context):
     filtered_trips_df = pd.merge(service_ids_df, trips_df, on='service_id')
 
     # Write filtered_trips.csv to S3
-    write_df_to_csv_on_s3(filtered_trips_df, output_bucket, 'filtered_trips/filtered_trips.csv')
+    write_df_to_csv_on_s3(filtered_trips_df, output_bucket, f'filtered_trips/filtered_trips_{file_name}.csv')
 
     # Extract unique trip_ids from the filtered DataFrame
     unique_trip_ids = filtered_trips_df['trip_id'].unique()
@@ -69,7 +71,7 @@ def lambda_handler(event, context):
     filtered_stop_times_df = stop_times_df[stop_times_df['trip_id'].isin(unique_trip_ids)]
 
     # Write filtered_stop_times.csv to S3
-    write_df_to_csv_on_s3(filtered_stop_times_df, output_bucket, 'filtered_stop_times/filtered_stop_times.csv')
+    write_df_to_csv_on_s3(filtered_stop_times_df, output_bucket, f'filtered_stop_times/filtered_stop_times_{file_name}.csv')
 
 
 
