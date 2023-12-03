@@ -42,10 +42,10 @@ def lambda_handler(event, context):
 
     # Save Dataframe 
     temp_file_path = '/tmp/file.parquet'
-    df.to_parquet(temp_file_path, compression='gzip')
+    df.to_parquet(temp_file_path)
 
     # Define S3 key
-    s3_file_key = f'{folder_name}/STM_GTFS_VehiclePositions_{fetch_time_unix}.parquet.gz'
+    s3_file_key = f'{folder_name}/STM_GTFS_VehiclePositions_{fetch_time_unix}.parquet'
 
     # Upload the file to S3 with try-except for error handling
     try:

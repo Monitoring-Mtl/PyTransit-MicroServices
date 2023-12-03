@@ -30,6 +30,11 @@ bucket S3.
 Service Python qui permet de d'analyser le Delta des autobus par rapport au temps prévu d'arrivé aux arrêts. Il récupère également l'information concernant le niveau d'occupation 
 des autobus.
 
+## STM_Merge_Daily_GTFS_VehiclePositions
+
+Service Python qui permet de concaténer l'ensemble des fichiers GTFS VehiclePosition acquis dans une journée. Le processus pour concaténer durant la journée prend trops de temps
+lors de l'exécution de la Lambda du service "STM_Fetch_GTFS_VehiclePositions", c'est la raison pour laquelle nous effectuons la fusionner de tout les fichiers dans un seul fichier 
+".parquet" qui sera utiliser lors des analyses ou pour la récupération d'informations sur une journée.
 
 # BIXI
 

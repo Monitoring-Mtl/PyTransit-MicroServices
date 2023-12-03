@@ -56,6 +56,8 @@ def lambda_handler(event, context):
         how='left'
     )
 
+    print(f'2e merge: {merged_df.head(5)}')
+
     # Merges from routes file
     merged_df = pd.merge(
         merged_df, 

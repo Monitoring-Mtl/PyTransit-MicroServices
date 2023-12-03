@@ -13,6 +13,7 @@ def lambda_handler(event, context):
     input_bucket = event['input_bucket']
     output_bucket = event['output_bucket']
     timezone = event['timezone']
+    passed_date_str = event['date']
 
     calendar_file_path = 'calendar/calendar.parquet'
     trips_file_path = 'trips/trips.parquet'
@@ -20,9 +21,11 @@ def lambda_handler(event, context):
 
     # Setup the timezone
     eastern = pytz.timezone(timezone)
-    now = datetime.now(eastern)
 
-    # Get the current date and day of the week
+    # New: Parse the passed date instead of using datetime.now()
+    now = datetime.strptime(passed_date_str, '%Y%m%d').replace(tzinfo=eastern)
+
+    # Use the passed date and day of the week
     current_date = now.strftime('%Y%m%d')
     current_day_of_week = now.strftime('%A').lower()
 
