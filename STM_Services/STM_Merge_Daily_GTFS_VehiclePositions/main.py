@@ -1,17 +1,85 @@
 import boto3
 import os
-import shutil
 import polars as pl
 import concurrent.futures
-import datetime
+from datetime import datetime
 import pytz
-import time
 
 # Initialize Boto3 S3 client
 s3 = boto3.client('s3')
 
+
+def lambda_handler(event, context):
+    input_bucket = event['input_bucket'] 
+    output_bucket = event['output_bucket']
+    input_prefix = event['intput_prefix']
+    output_prefix = event['output_prefix']
+    timezone = event.get('timezone', 'America/Montreal')  # Default to 'America/Montreal' if not specified
+
+    # Initialize the timezone
+    eastern = pytz.timezone(timezone)
+
+    # Extract the date from the event, or use the current date in the specified timezone
+    date_str = event.get('date', datetime.now(eastern).strftime('%Y%m%d'))
+    date_obj = datetime.strptime(date_str, '%Y%m%d')
+    formatted_date = date_obj.strftime('%Y-%m-%d')
+
+    # We use "Bucket/YYYY/MM/DD/... as a folder structure to benefit from Partition since our query will be mainly with based on date
+    folder_structure = date_obj.strftime('%Y/%m/%d')
+
+    s3_keys = list_files_in_s3_bucket(input_bucket, input_prefix)
+
+    # Determine columns
+    all_columns = set()
+    for key in s3_keys:
+        response = s3.get_object(Bucket=input_bucket, Key=key)
+        file_stream = response['Body']
+        df = pl.read_parquet(file_stream)
+        all_columns.update(df.columns)
+
+    all_columns.add('timefetch')
+    all_columns = sorted(all_columns)  # Convert to a sorted list for consistent order
+
+    # Process files and merge into a single DataFrame
+    dfs = process_files(input_bucket, s3_keys, all_columns)
+    merged_df = pl.concat(dfs)
+
+    try:
+        # Use /tmp directory for local file operations in Lambda
+        local_output_file = f"/tmp/Daily_GTFS_VehiclePosition_{formatted_date}.parquet"
+        merged_df.write_parquet(local_output_file)
+
+        # S3 key includes folder structure
+        s3_key = f"{output_prefix}{folder_structure}/Daily_GTFS_VehiclePosition_{formatted_date}.parquet"
+
+        # Upload the output file to S3
+        upload_to_s3(output_bucket, s3_key, local_output_file)
+
+        print(f"Data merged and saved in S3 bucket '{output_bucket}' at '{s3_key}'")
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return {
+            'statusCode': 500,
+            'body': f"Error occurred: {e}"
+        }
+
+    finally:
+        # Clean up /tmp directory
+        try:
+            os.remove(local_output_file)
+        except Exception as e:
+            print(f"Failed to delete temporary file: {e}")
+
+    return {
+        'statusCode': 200,
+        'body': f"Process completed for date {formatted_date}"
+    }
+
+
 def upload_to_s3(bucket, key, local_path):
     s3.upload_file(local_path, bucket, key)
+
 
 def download_and_process_file(bucket, key, all_columns):
     try:
@@ -70,67 +138,4 @@ def list_files_in_s3_bucket(bucket, prefix):
 
     return files
 
-def lambda_handler(event, context):
-    input_bucket = event['input_bucket']
-    output_bucket = event['output_bucket']
-    input_prefix = event['intput_prefix']
-    output_prefix = event['output_prefix']
-    timezone = event.get('timezone', 'America/Montreal')  # Default to 'America/Montreal' if not specified
 
-    # Initialize the timezone
-    eastern = pytz.timezone(timezone)
-
-    # Extract the date from the event, or use the current date in the specified timezone
-    date_str = event.get('date', datetime.now(eastern).strftime('%Y%m%d'))
-    date_obj = datetime.strptime(date_str, '%Y%m%d')
-    formatted_date = date_obj.strftime('%Y-%m-%d')
-    folder_structure = date_obj.strftime('%Y/%m/%d')
-
-    s3_keys = list_files_in_s3_bucket(input_bucket, input_prefix)
-
-    # Determine columns
-    all_columns = set()
-    for key in s3_keys:
-        response = s3.get_object(Bucket=input_bucket, Key=key)
-        file_stream = response['Body']
-        df = pl.read_parquet(file_stream)
-        all_columns.update(df.columns)
-
-    all_columns.add('timefetch')
-    all_columns = sorted(all_columns)  # Convert to a sorted list for consistent order
-
-    # Process files and merge into a single DataFrame
-    dfs = process_files(input_bucket, s3_keys, all_columns)
-    merged_df = pl.concat(dfs)
-
-    try:
-        # Use /tmp directory for local file operations in Lambda
-        local_output_file = f"/tmp/Daily_GTFS_VehiclePosition_{formatted_date}.parquet"
-        merged_df.write_parquet(local_output_file)
-
-        # S3 key includes folder structure
-        s3_key = f"{output_prefix}{folder_structure}/Daily_GTFS_VehiclePosition_{formatted_date}.parquet"
-
-        # Upload the output file to S3
-        upload_to_s3(output_bucket, s3_key, local_output_file)
-
-        print(f"Data merged and saved in S3 bucket '{output_bucket}' at '{s3_key}'")
-
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return {
-            'statusCode': 500,
-            'body': f"Error occurred: {e}"
-        }
-
-    finally:
-        # Clean up /tmp directory
-        try:
-            os.remove(local_output_file)
-        except Exception as e:
-            print(f"Failed to delete temporary file: {e}")
-
-    return {
-        'statusCode': 200,
-        'body': f"Process completed for date {formatted_date}"
-    }
