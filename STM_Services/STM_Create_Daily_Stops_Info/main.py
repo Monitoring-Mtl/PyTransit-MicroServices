@@ -12,9 +12,13 @@ def lambda_handler(event, context):
     static_bucket = event['static_bucket']
     daily_static_bucket = event['daily_static_bucket']
     output_bucket = event['output_bucket']
-    local_timezone = event['timezone']
+    local_timezone = event.get('timezone', 'America/Montreal')  # Default to 'America/Montreal' if not specified
 
     eastern = pytz.timezone(local_timezone)
+
+    # Extract the date from the event, or use the current date in the specified timezone (Format YYYYMMDD)
+    date_str = event.get('date', datetime.now(eastern).strftime('%Y%m%d'))
+
     now = datetime.now(eastern)
     folder_name = now.strftime('%Y/%m/%d')
     file_name = now.strftime('%Y-%m-%d')
