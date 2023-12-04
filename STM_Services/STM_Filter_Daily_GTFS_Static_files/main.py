@@ -52,7 +52,7 @@ def lambda_handler(event, context):
 
     def convert_columns_to_int64(df, columns):
         for column in columns:
-            df = df.with_column(df[column].cast(pl.Int64))
+            df = df.with_columns(df[column].cast(pl.Int64))
         return df
 
     # Load calendar.csv from S3 into a DataFrame
