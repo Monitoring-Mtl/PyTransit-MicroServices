@@ -1,4 +1,5 @@
 boto3==1.28.77
 polars==0.19.17
+fastparquet==2023.10.1
 numpy==1.26.0
 pytz==2023.3.post1
