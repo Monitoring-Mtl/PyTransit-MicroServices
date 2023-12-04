@@ -1,43 +1,32 @@
 from google.protobuf.json_format import MessageToDict
-import json
+import pandas as pd
 import boto3
 from google.transit import gtfs_realtime_pb2
 from urllib.request import Request, urlopen
-from datetime import datetime, timedelta
-import gzip
+from datetime import datetime
 import pytz
 import os
 
-# Define the URL of the API
-# api_url = "${{ secrets.API_URL_STM_VEHICLE }}"
-# api_key = "${{ secrets.API_KEY_STM }}"
-api_url = os.getenv('API_URL_STM_VEHICLE')
-api_key = os.getenv('API_KEY_STM')
-
-# Set up the request headers with the API key
-headers = {
-    "apikey": api_key
-}
+api_url = os.environ.get('API_URL_STM_VEHICLE')
+api_key = os.environ.get('API_KEY_STM')
 
 # Set up S3
 s3 = boto3.client('s3')
-bucket_name = ""
 
-def lambda_handler(event, context):
-    global bucket_name 
+
+def lambda_handler(event, context): 
+
     bucket_name = event['bucket_name']
-    fetch_data()
+    timezone = event['timezone']
 
-
-def fetch_data():
-    eastern = pytz.timezone('America/Montreal')
+    eastern = pytz.timezone(timezone)
     now = datetime.now(eastern)
     fetch_time_unix = int(now.timestamp())
     folder_name = now.strftime('%Y/%m/%d')
 
     feed = gtfs_realtime_pb2.FeedMessage()
-    request = Request(api_url)
-    request.add_header('apikey', api_key)
+    request = Request(api_url, headers={'apikey': api_key})
+
     try:
         response = urlopen(request)
     except Exception as e:
@@ -49,18 +38,32 @@ def fetch_data():
     # Convert the feed object to a JSON-serializable dictionary
     json_data_dict = MessageToDict(feed)
 
-    # Serialize the dictionary to a JSON string
-    json_data = json.dumps(json_data_dict)
+    # Check if 'entity' is in data, if so normalize it
+    if 'entity' in json_data_dict:
+        df = pd.json_normalize(json_data_dict['entity'], sep='_')
+    else:
+        df = pd.DataFrame()
 
-    # Compress the JSON data using gzip
-    json_data_gzipped = gzip.compress(json_data.encode('utf-8'))
+    # Sort the columns in the DataFrame
+    df = df.sort_index(axis=1)
 
-    # Define S3 object name 
-    object_name = f'{folder_name}/gtfs_data_{fetch_time_unix}.json.gz'  
+    # Save Dataframe 
+    temp_file_path = '/tmp/file.parquet'
+    df.to_parquet(temp_file_path, compression="gzip")
+
+    # Define S3 key
+    s3_file_key = f'{folder_name}/STM_GTFS_VehiclePositions_{fetch_time_unix}.parquet'
+
+    # Upload the file to S3 with try-except for error handling
     try:
-        # Store the gzipped JSON object in S3
-        s3.put_object(Bucket=bucket_name, Key=object_name, Body=json_data_gzipped)
-        print(f'Successfully stored {object_name} in S3.')
+        s3.upload_file(temp_file_path, bucket_name, s3_file_key)
+        print(f'Successfully stored {s3_file_key} in S3.')
     except Exception as e:
-        print(f'Failed to store {object_name} in S3 due to an exception: {e}')
-        raise 
+        print(f"Failed to upload to S3: {e}")
+        return
+    finally:
+        # Always try to remove the file from /tmp, even if upload fails
+        try:
+            os.remove(temp_file_path)
+        except Exception as e:
+            print(f"Failed to delete temporary file: {e}")

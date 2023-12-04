@@ -49,6 +49,8 @@ Resources:
   STMFetchGTFSVehiclePositions:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
+      Timeout: 10 # Timeout in seconds
+      MemorySize: 128
       CodeUri: STM_Services/STM_Fetch_GTFS_VehiclePositions/
       Handler: main.lambda_handler
       Runtime: python3.9
@@ -153,6 +155,28 @@ Resources:
               API_URL_STM_TRIP: !Ref ApiUrlStmTrip
               API_URL_STM_VEHICLE: !Ref ApiUrlStmVehicle
               API_KEY_STM: !Ref ApiKeyStm
+
+  STMMergeDailyGTFSVechiclePositions:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      Timeout: 60 # Timeout in seconds
+      MemorySize: 4096
+      CodeUri: STM_Services/STM_Merge_Daily_GTFS_Vehicle_Positions/
+      Handler: main.lambda_handler
+      Runtime: python3.9
+      Architectures:
+        - x86_64
+      Events:
+        Start:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /MergeDailyGTFSVehiclePositions
+            Method: get
+      Environment:
+            Variables:
+              API_URL_STM_TRIP: !Ref ApiUrlStmTrip
+              API_URL_STM_VEHICLE: !Ref ApiUrlStmVehicle
+              API_KEY_STM: !Ref ApiKeyStm
     
 Outputs:
 
@@ -179,4 +203,8 @@ Outputs:
   STMCreateDailyStopsInfoFunctionArn:
     Description: "STM Create Daily Stops Info files Lambda Function ARN"
     Value: !GetAtt STMCreateDailyStopsInfo.Arn
+
+  STMMergeDailyGTFSVechiclePositionsInfoFunctionArn:
+    Description: "STM Merge Daily GTFS Vehicle Positions files Lambda Function ARN"
+    Value: !GetAtt STMMergeDailyGTFSVechiclePositions.Arn
 

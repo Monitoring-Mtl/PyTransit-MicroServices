@@ -1,10 +1,10 @@
-import boto3
 import requests
 import os
-import datetime
 import zipfile
-import csv
-from io import StringIO, BytesIO
+import boto3
+from io import BytesIO
+import polars as pl
+import datetime
 
 # bucket_name = os.environ.get('BUCKET_NAME')
 # url = os.environ.get('ZIP_URL')
@@ -38,31 +38,40 @@ def lambda_handler(event, context):
         print("Last_modified.txt does not exist. Processing new file.")
 
     # Step 4: Si le fichier "Last_modified.txt" n'existe pas on télécharge les fichiers et upload dans S3
-    zip_file_request = requests.get(url)
-    zip_file_content = BytesIO(zip_file_request.content)
-    with zipfile.ZipFile(zip_file_content) as z:
+    # Step 4: Download ZIP to /tmp directory
+    response = requests.get(url, stream=True)
+    zip_tmp_path = '/tmp/tempfile.zip'
+    with open(zip_tmp_path, 'wb') as f:
+        for chunk in response.iter_content(chunk_size=128):
+            f.write(chunk)
+
+    # Process files from /tmp
+    with zipfile.ZipFile(zip_tmp_path) as z:
         for filename in z.namelist():
             if filename.endswith('.txt'):
-                # On lit le CSV en Utf-8 et converti en csv. 
-                with z.open(filename) as f:
-                    txt_content = f.read().decode('utf-8')
+                # Extract file to /tmp
+                z.extract(filename, '/tmp')
+                txt_file_path = os.path.join('/tmp', filename)
 
-                    # Modifie l'extension pour CSV (le fichier est déjà en format interne CSV)
-                    csv_filename = filename.replace('.txt', '.csv')
-                    folder_name = filename.replace('.txt', '')
+                # Read content into Polars DataFrame
+                df = pl.read_csv(txt_file_path)
 
-                    # On sauvegarde le fichier dans un répertoire du même nom
-                    csv_key = f'{folder_name}/{csv_filename}'
-                    s3.put_object(Bucket=bucket_name, Key=csv_key, Body=txt_content)
+                # Convert DataFrame to Parquet
+                parquet_buffer = BytesIO()
+                df.write_parquet(parquet_buffer)
+
+                # Define key for S3 (change file extension to .parquet)
+                parquet_filename = filename.replace('.txt', '.parquet')
+                folder_name = filename.replace('.txt', '')
+                parquet_key = f'{folder_name}/{parquet_filename}'
+
+                # Upload Parquet file to S3
+                s3.put_object(Bucket=bucket_name, Key=parquet_key, Body=parquet_buffer.getvalue())
+
+    # Clean up /tmp
+    os.remove(zip_tmp_path)
+    for filename in z.namelist():
+        os.remove(os.path.join('/tmp', filename))
 
     # Step 5: Mettre à jour le fichier "Last_modified.txt" avec la nouvelle date. 
     s3.put_object(Bucket=bucket_name, Key=LAST_MODIFIED_KEY, Body=last_modified)
-
-
-# Entry point for the Lambda function execution
-def main():
-    lambda_handler(None, None)
-
-
-if __name__ == "__main__":
-    main()
