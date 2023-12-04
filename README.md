@@ -118,27 +118,86 @@ composant (micro-service)_
 
 Voici la liste des frameworks et des outils que nous utilisons dans le projet : 
 
+* [![Python][Python]][Python-url]
+* [![AWS][AWS]][AWS-url]
+* [![Pandas][Pandas]][Pandas-url]
 * [![GitHub][GitHub]][GitHub-url]
 * [![GitHubActions][GitHubActions]][GitHubActions-url]
 
 <p align="right">(<a href="#readme-top">haut</a>)</p>
 
-https://github.com/Monitoring-Mtl/PyTransit-MicroServices/blob/main/PyTransit.png?raw=true
 # PyTransit-MicroServices
-Services Python pour récupérer et analyser les données
+
+</br>
+<div align="center">
+  <a href="https://www.etsmtl.ca/">
+    <img src="https://github.com/Monitoring-Mtl/PyTransit-MicroServices/blob/main/PyTransit.png?raw=true" alt="Logo" width="200" height="200">
+  </a>
+</div>
+</br>
+<div align="center">
+  <p>
+  Services Python pour récupérer et analyser les données
+  </p>
+</div>
+
+</br>
+
+<!-- EXPLICATION DES FUNCTIONS -->
+
+## Fonctions - STM
+
+### STM_Fetch_GTFS_TripUpdates
+
+Service Python qui permet de récupérer les données GTFS Live pour l'estimation des horaires de la STM et d'enregistrer le fichier JSON de réponse dans un format GZIP (afin de diminuer l'espace requis) dans un bucket S3 dans un répertoire correspondant à la date de la journée.
+
+
+### STM_Fetch_GTFS_VehiclePositions 
+
+Service Python qui permet de récupérer les données GTFS Live pour les positions des véhicules de la STM et d'enregistrer le fichier JSON de réponse dans un format GZIP (afin de diminuer l'espace requis) dans un bucket S3 dans un répertoire correspondant à la date de la journée.
+
+
+### STM_Fetch_Update_Static_files
+
+Service Python qui permet de récupérer les fichiers static GTFS de la STM et de les déposer dans un bucket S3 selon une structure de répertoire. La fonction 
+valide si les fichiers présents sont les derniers à jour, sinon elle récupère les nouveaux fichiers et les met à jour.
+
+### STM_Filter_Daily_GTFS_Static_files
+
+Service Python qui permet de créer la liste de service_id, de trip_id et de stop_times valident pour la journée à partir des fichier static. Et de les déposer dans un nouveau 
+bucket S3. 
+
+
+### STM_Analyse_Daily_Stops_Data
+
+Service Python qui permet de d'analyser le Delta des autobus par rapport au temps prévu d'arrivé aux arrêts. Il récupère également l'information concernant le niveau d'occupation 
+des autobus.
+
+### STM_Merge_Daily_GTFS_VehiclePositions
+
+Service Python qui permet de concaténer l'ensemble des fichiers GTFS VehiclePosition acquis dans une journée.Le processus pour concaténer au fur et à mesure des "fetch" durant la journée prend trops de temps lors de l'exécution de la Lambda du service "STM_Fetch_GTFS_VehiclePositions", c'est la raison pour laquelle nous effectuons la fusionner de tout les fichiers dans un seul fichier ".parquet" qui sera utiliser lors des analyses ou pour la récupération d'informations sur une journée.
+
+<p align="right">(<a href="#readme-top">haut</a>)</p>
+
+</br>
+
+## Fonctions - BIXI
+
+### BIXI_Fetch_GTFS_Station_Status
+
+Service Python qui permet de récupérer les données GBFS pour les Status de toutes les stations BIXI et d'enregistrer le fichier JSON de réponse dans un format GZIP, dans un
+bucket S3, dans un répertoire correspondant à la date de la journée.
+
+<p align="right">(<a href="#readme-top">haut</a>)</p>
+
+</br>
 
 <!-- POUR DÉBUTER -->
 ## Pour Débuter
 
-Voici la procédure à suivre pour installer et lancer le projet. IMPORTANT ! si vous n'avez pas NodeJS / NPM [cliquez-ici](https://nodejs.org/en)
-
 ### Prérequis
 
-Pour mettre a jour votre version de npm à la plus récente
-* npm
-  ```sh
-  npm install npm@latest -g
-  ```
+Important d'avoir Python 3.8 ou plus récente d'installer, si non, [cliquez-ici](https://docs.python.org/3.8/)
 
 ### Installation
 
@@ -147,7 +206,7 @@ _Vous trouverez ci-bas un exemple de la procédure pour installer le projet loca
 1. Obtenir une clé d'API gratuite de la STM a [Stm Portail Développeur](https://portail.developpeurs.stm.info/apihub/?_gl=1*15e9526*_ga*MTUwNTUwMzAzMi4xNjk1MDU5MDA1*_ga_37MDMXFX83*MTY5NjM0NDc3MC4xMi4wLjE2OTYzNDQ3NzAuNjAuMC4w#/login)
 2. Cloner le repertoire
    ```sh
-   git clone https://github.com/Monitoring-Mtl/Serverless-API.git
+   git clone https://github.com/Monitoring-Mtl/PyTransit-MicroServices.git
    ```
 3. Install NPM packages
    ```sh
@@ -229,8 +288,6 @@ Nous avons décider d'utiliser une structure de Trunk base pour la gestion des b
 
 Remerciements à 
 
-  * [AWS - Academy](https://aws.amazon.com/)
-  * [FX Innovation - Cloud Campus](https://www.fxinnovation.com/cloud-campus/)
   * [Badges](https://github.com/Ileriayo/markdown-badges#markdown-badges)
   * [Readme Template](https://github.com/othneildrew/Best-README-Template)
 
@@ -265,63 +322,18 @@ Les branches doivent etre nommber avec le numero de issue generer dans le kanban
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
 [linkedin-url]: https://linkedin.com/in/othneildrew
 [product-screenshot]: images/screenshot.png
-[NodeJS]: https://img.shields.io/badge/node.js-6DA55F?style=for-the-badge&logo=node.js&logoColor=white
-[NodeJS-url]: https://nodejs.org/en
-[TypeScript]: https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white
-[TypeScript-url]: https://www.typescriptlang.org/
 [AWS]: https://img.shields.io/badge/AWS-%23FF9900.svg?style=for-the-badge&logo=amazon-aws&logoColor=white
 [AWS-url]: https://aws.amazon.com/
 [GitHub]: https://img.shields.io/badge/github-%23121011.svg?style=for-the-badge&logo=github&logoColor=white
 [GitHub-url]: https://www.github.com
 [GitHubActions]: https://img.shields.io/badge/github%20actions-%232671E5.svg?style=for-the-badge&logo=githubactions&logoColor=white
 [GitHubActions-url]: https://github.com/features/actions
-[AmazonDynamoDB]: https://img.shields.io/badge/Amazon%20DynamoDB-4053D6?style=for-the-badge&logo=Amazon%20DynamoDB&logoColor=white
-[AmazonDynamoDB-url]: https://aws.amazon.com/dynamodb/
-[Express.js]: https://img.shields.io/badge/express.js-%23404d59.svg?style=for-the-badge&logo=express&logoColor=%2361DAFB
-[Express.js-url]: https://expressjs.com/
-[ESLint]: https://img.shields.io/badge/ESLint-4B3263?style=for-the-badge&logo=eslint&logoColor=white
-[ESLint-url]: https://eslint.org/
-[NPM]: https://img.shields.io/badge/NPM-%23CB3837.svg?style=for-the-badge&logo=npm&logoColor=white
-[NPM-url]: https://www.npmjs.com/
-
-
-## STM_Fetch_GTFS_TripUpdates
-
-Service Python qui permet de récupérer les données GTFS Live pour l'estimation des horaires de la STM et d'enregistrer le fichier JSON de réponse dans un format GZIP (afin de diminuer l'espace requis) dans un bucket S3 dans un répertoire correspondant à la date de la journée.
-
-
-## STM_Fetch_GTFS_VehiclePositions 
-
-Service Python qui permet de récupérer les données GTFS Live pour les positions des véhicules de la STM et d'enregistrer le fichier JSON de réponse dans un format GZIP (afin de diminuer l'espace requis) dans un bucket S3 dans un répertoire correspondant à la date de la journée.
-
-
-## STM_Fetch_Update_Static_files
-
-Service Python qui permet de récupérer les fichiers static GTFS de la STM et de les déposer dans un bucket S3 selon une structure de répertoire. La fonction 
-valide si les fichiers présents sont les derniers à jour, sinon elle récupère les nouveaux fichiers et les met à jour.
-
-## STM_Filter_Daily_GTFS_Static_files
-
-Service Python qui permet de créer la liste de service_id, de trip_id et de stop_times valident pour la journée à partir des fichier static. Et de les déposer dans un nouveau 
-bucket S3. 
-
-
-## STM_Analyse_Daily_Stops_Data
-
-Service Python qui permet de d'analyser le Delta des autobus par rapport au temps prévu d'arrivé aux arrêts. Il récupère également l'information concernant le niveau d'occupation 
-des autobus.
-
-## STM_Merge_Daily_GTFS_VehiclePositions
-
-Service Python qui permet de concaténer l'ensemble des fichiers GTFS VehiclePosition acquis dans une journée.Le processus pour concaténer au fur et à mesure des "fetch" durant la journée prend trops de temps lors de l'exécution de la Lambda du service "STM_Fetch_GTFS_VehiclePositions", c'est la raison pour laquelle nous effectuons la fusionner de tout les fichiers dans un seul fichier ".parquet" qui sera utiliser lors des analyses ou pour la récupération d'informations sur une journée.
-
-
-# BIXI
-
-## BIXI_Fetch_GTFS_Station_Status
-
-Service Python qui permet de récupérer les données GBFS pour les Status de toutes les stations BIXI et d'enregistrer le fichier JSON de réponse dans un format GZIP, dans un
-bucket S3, dans un répertoire correspondant à la date de la journée.
+[AWS]: https://img.shields.io/badge/AWS-%23FF9900.svg?style=for-the-badge&logo=amazon-aws&logoColor=white
+[AWS-url]: https://aws.amazon.com/
+[Python]: https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54
+[Python-url]: https://docs.python.org/3/
+[Pandas]: https://img.shields.io/badge/pandas-%23150458.svg?style=for-the-badge&logo=pandas&logoColor=white
+[Pandas-url]: https://pandas.pydata.org/
 
 
 ## LICENSE
