@@ -50,6 +50,11 @@ def lambda_handler(event, context):
     def write_df_to_parquet_to_tmp(df, local_path):
         df.write_parquet(local_path)
 
+    def convert_columns_to_int64(df, columns):
+        for column in columns:
+            df = df.with_column(df[column].cast(pl.Int64))
+        return df
+
     # Load calendar.csv from S3 into a DataFrame
     local_calendar_file_path = download_file_to_tmp(input_bucket, calendar_file_path)
     calendar_df = read_parquet_from_tmp(local_calendar_file_path)
@@ -85,6 +90,11 @@ def lambda_handler(event, context):
     # Merge DataFrames on service_id
     filtered_trips_df = service_ids_df.join(trips_df, on='service_id')
 
+     # Change the type of some columns
+    columns_to_convert_filtered_trips = ['route_id', 'trip_id', 'direction_id', 'shape_id', 'wheelchair_accessible']
+    filtered_trips_df = convert_columns_to_int64(filtered_trips_df, columns_to_convert_filtered_trips)
+    
+
     # Write filtered_trips to /tmp and upload to S3
     local_filtered_trips_path = f"/tmp/filtered_trips_{file_name}.parquet"
     write_df_to_parquet_to_tmp(filtered_trips_df, local_filtered_trips_path)
@@ -99,10 +109,11 @@ def lambda_handler(event, context):
 
     # Filter stop_times DataFrame based on trip_id
     filtered_stop_times_df = stop_times_df.filter(pl.col('trip_id').is_in(unique_trip_ids))
-    print(filtered_stop_times_df.head(5))
-    print(filtered_stop_times_df.dtypes)
-    print(filtered_stop_times_df.describe)
-    
+
+    # Change the type of some columns
+    columns_to_convert_filtered_stop_times = ['trip_id', 'stop_id', 'stop_sequence']
+    filtered_stop_times_df = convert_columns_to_int64(filtered_stop_times_df, columns_to_convert_filtered_stop_times)
+
     # Write filtered_stop_times to /tmp and upload to S3
     local_filtered_stop_times_path = f"/tmp/filtered_stop_times_{file_name}.parquet"
     write_df_to_parquet_to_tmp(filtered_stop_times_df, local_filtered_stop_times_path)
