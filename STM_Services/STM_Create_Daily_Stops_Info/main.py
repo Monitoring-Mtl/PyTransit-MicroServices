@@ -1,5 +1,6 @@
 import boto3
-import pandas as pd
+#import pandas as pd
+import polars as pl
 import os
 from datetime import datetime, timedelta
 import pytz
@@ -25,7 +26,7 @@ def lambda_handler(event, context):
     # Use date_obj for folder_name and file_name
     folder_name = date_obj.strftime('%Y/%m/%d')
     file_name = date_obj.strftime('%Y-%m-%d')
-
+    
     filtered_trips_path = f'{folder_name}/filtered_trips/filtered_trips_{file_name}.parquet'
     filtered_stop_times_path = f'{folder_name}/filtered_stop_times/filtered_stop_times_{file_name}.parquet'
 
@@ -43,32 +44,33 @@ def lambda_handler(event, context):
     routes_df = read_parquet_from_tmp(routes_local_path)
 
     # Process the stop times into UNIX timestamp
-    filtered_stop_times_df['arrival_time_unix'] = filtered_stop_times_df['arrival_time'].apply(lambda x: convert_to_unix(x, date_obj, local_timezone))
+    #filtered_stop_times_df['arrival_time_unix'] = filtered_stop_times_df['arrival_time'].apply(lambda x: convert_to_unix(x, date_obj, local_timezone))
 
+    filtered_stop_times_df = filtered_stop_times_df.with_columns(
+        pl.col('arrival_time').map_elements(lambda x: convert_to_unix(x, date_obj, local_timezone)).alias('arrival_time_unix')
+    )
+    
     # Ensure data types for 'stop_id' match
     stops_df['stop_id'] = stops_df['stop_id'].astype(str)
     filtered_stop_times_df['stop_id'] = filtered_stop_times_df['stop_id'].astype(str)
 
-    # Merge DataFrames
-    merged_df = pd.merge(
-        filtered_stop_times_df,
+    # Merge with filtered_trips_df
+    merged_df = filtered_stop_times_df.join(
         filtered_trips_df[['trip_id', 'route_id', 'trip_headsign', 'direction_id', 'shape_id', 'wheelchair_accessible']],
         on='trip_id',
         how='left'
     )
 
-    # Merges from stops file
-    merged_df = pd.merge(
-        merged_df,
+    # Merge with stops_df
+    merged_df = merged_df.join(
         stops_df[['stop_id', 'stop_name', 'stop_lat', 'stop_lon', 'wheelchair_boarding']],
         on='stop_id',
         how='left'
     )
 
-    # Merges from routes file
-    merged_df = pd.merge(
-        merged_df, 
-        routes_df[['route_id', 'route_long_name']], 
+    # Merge with routes_df
+    merged_df = merged_df.join(
+        routes_df[['route_id', 'route_long_name']],
         on='route_id',
         how='left'
     )
@@ -107,10 +109,10 @@ def upload_file_from_tmp(bucket, key, local_path):
 
 # We need to force "fastparquet" as an engine, otherwise there is an error in the reading and creation.
 def read_parquet_from_tmp(local_path):
-    return pd.read_parquet(local_path,engine='fastparquet')
+    return pl.read_parquet(local_path)
 
 def write_df_to_parquet_to_tmp(df, local_path):
-    df.to_parquet(local_path, engine='fastparquet', compression='gzip', index=False)
+    df.write_parquet(local_path, compression='gzip')
 
 
 def convert_to_unix(time_str, base_date, timezone_str):
