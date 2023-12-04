@@ -94,7 +94,7 @@ def process_json_files_s3(bucket_name, prefix, event_datetime, timezone, cutoff_
     continuation_token = None
     next_day = event_datetime + timedelta(days=1)
     while True:
-        # List objects with pagination
+        # List objects with pagination """ ajout commentaires pour que puisse merge"
         if continuation_token:
             response = s3.list_objects_v2(Bucket=bucket_name, Prefix=prefix, ContinuationToken=continuation_token)
         else:
@@ -108,6 +108,7 @@ def process_json_files_s3(bucket_name, prefix, event_datetime, timezone, cutoff_
                 # Check if file_timestamp is for the next day
                 file_datetime = datetime.fromtimestamp(file_timestamp, timezone)
                 file_date = file_datetime.date()
+                test = datetime.date()
                 
                 # Process the file only if its timestamp is less than or equal to the cutoff timestamp
                 if cutoff_timestamp is None or file_timestamp <= cutoff_timestamp:
