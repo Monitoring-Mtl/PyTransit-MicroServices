@@ -220,7 +220,6 @@ _Vous trouverez ci-bas un exemple de la procédure pour installer le projet loca
 <p align="right">(<a href="#readme-top">haut</a>)</p>
 
 
-
 <!-- EXAMPLES D'UTILISATION -->
 ## Utilisation
 
@@ -238,11 +237,8 @@ _Pour plus d'informations, référez-vous à la [Documentation](https://github.c
 <!-- PLAN -->
 ## Plan de Développement
 
-- [x] Ajouter les endpoints nécessaires
 - [x] Ajuster et automatiser le Pipeline
 - [x] Collection des données
-- [ ] Faire la documentations
-- [ ] Ajouter middlewares
 
 Voir les [issues](https://github.com/Monitoring-Mtl/Serverless-API/issues) pour voir les Features (et issues connuent).
 
