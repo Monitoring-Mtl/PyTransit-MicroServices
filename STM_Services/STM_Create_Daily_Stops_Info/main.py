@@ -2,6 +2,7 @@ import boto3
 import pandas as pd
 import os
 from datetime import datetime, timedelta
+import gzip
 import pytz
 
 # Initialize S3 client

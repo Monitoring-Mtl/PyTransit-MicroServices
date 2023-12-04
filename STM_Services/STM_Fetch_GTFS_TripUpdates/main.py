@@ -23,6 +23,7 @@ def lambda_handler(event, context):
     now = datetime.now(eastern)
     fetch_time_unix = int(now.timestamp())
     folder_name = now.strftime('%Y/%m/%d')
+    folder_name = now.strftime('%Y/%m/%d')
 
     feed = gtfs_realtime_pb2.FeedMessage()
     request = Request(api_url, headers={'apikey': api_key})

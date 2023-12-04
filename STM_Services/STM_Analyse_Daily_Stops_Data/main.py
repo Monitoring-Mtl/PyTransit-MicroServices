@@ -29,9 +29,9 @@ def lambda_handler(event, context):
     # Calculate UNIX timestamp for 7:20 AM on the next day to use a Threshold when fetching from S3 bucket
     seven_twenty_am_unix = time_to_unix("07:20:00", next_day, timezone)
     
-    # Determine the folders name in format # e.g. '2023-11-09' & '2023-11-10'
-    event_date_folder = event_datetime.strftime('%Y-%m-%d')
-    next_day_folder = next_day.strftime('%Y-%m-%d')
+    # Determine the folders name in format # e.g. '2023/11/09' & '2023/11/10'
+    event_date_folder = event_datetime.strftime('%Y/%m/%d')
+    next_day_folder = next_day.strftime('%Y/%m/%d')
 
     # Create the dictionary for the GTFS Live data
     json_dict = {}
@@ -44,7 +44,7 @@ def lambda_handler(event, context):
     csv_data = pd.read_csv(local_csv_path)
 
     # Convert 'arrival_time' to UNIX timestamps
-    csv_data['arrival_time_unix'] = csv_data['arrival_time'].apply(lambda x: time_to_unix(x, event_datetime, timezone))
+    csv_data['arrival_time_unix'] = csv_data['arrival_time'].apply(lambda x: time_to_unix(x, file_date, timezone))
 
     # Prepare a new column for the offset
     csv_data['offset'] = None
