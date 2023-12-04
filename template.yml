@@ -161,7 +161,7 @@ Resources:
     Properties:
       Timeout: 60 # Timeout in seconds
       MemorySize: 4096
-      CodeUri: STM_Services/STM_Merge_Daily_GTFS_Vehicle_Positions/
+      CodeUri: STM_Services/STM_Merge_Daily_GTFS_VehiclePositions/
       Handler: main.lambda_handler
       Runtime: python3.9
       Architectures:
