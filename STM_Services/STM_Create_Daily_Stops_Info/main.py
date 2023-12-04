@@ -114,7 +114,7 @@ def read_parquet_from_tmp(local_path):
     return pl.read_parquet(local_path)
 
 def write_df_to_parquet_to_tmp(df, local_path):
-    df.write_parquet(local_path, compression='gzip')
+    df.write_parquet(local_path)
 
 
 def convert_to_unix(time_str, base_date, timezone_str):
@@ -134,7 +134,7 @@ def convert_to_unix(time_str, base_date, timezone_str):
 def create_route_info(route_id, route_long_name, trip_headsign):
     direction_mapping = {'E': 'EST', 'O': 'OUEST', 'S': 'SUD', 'N': 'NORD'}
 
-    # Extract the last character of trip_headsign as direction
+    # Extract the last character of trip_headsign as direction (E, O, S, N)
     direction = pl.col('trip_headsign').str.slice(-1)
 
     # Map the extracted direction to the translated direction

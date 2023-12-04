@@ -15,15 +15,21 @@ def lambda_handler(event, context):
     json_bucket_name = event['json_bucket_name']
     csv_bucket_name = event['csv_bucket_name']
     updated_files_bucket_name = event['updated_files_bucket_name']
-    event_date = event['date']  # e.g., '20231113'
-    timezone = event['timezone']  # e.g., 'Canada/Eastern'
+    event_date = event['date'] 
+    timezone = event.get('timezone', 'America/Montreal')
 
-    eastern_tz = pytz.timezone('Canada/Eastern')
+    eastern = pytz.timezone('timezone')
+    
+    # Extract the date from the event, or use the current date in the specified timezone (Format YYYYMMDD)
+    date_str = event.get('date', datetime.now(eastern).strftime('%Y%m%d'))
 
+    # Parse the date string into a datetime object
+    date_obj = datetime.strptime(date_str, '%Y%m%d')
+    date_obj = eastern.localize(date_obj)
     TIME_THRESHOLD = 18000  # 5 hours in seconds
 
     # We get the date to evaluate and also determine the next day for the GTFS Json files
-    event_datetime = datetime.strptime(event_date, '%Y%m%d')
+    event_datetime = datetime.strptime(date_str, '%Y%m%d')
     next_day = event_datetime + timedelta(days=1)
 
     # Calculate UNIX timestamp for 7:20 AM on the next day to use a Threshold when fetching from S3 bucket
