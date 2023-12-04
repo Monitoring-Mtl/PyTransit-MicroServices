@@ -17,7 +17,7 @@ s3 = boto3.client('s3')
 def lambda_handler(event, context): 
 
     bucket_name = event['bucket_name']
-    timezone = event['timezone']
+    timezone = event.get('timezone', 'America/Montreal')  # Default to 'America/Montreal' if not specified
 
     eastern = pytz.timezone(timezone)
     now = datetime.now(eastern)

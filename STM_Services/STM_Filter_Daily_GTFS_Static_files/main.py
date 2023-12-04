@@ -12,15 +12,17 @@ def lambda_handler(event, context):
     # Define the buckets and file paths
     input_bucket = event['input_bucket']
     output_bucket = event['output_bucket']
-    timezone = event['timezone']
-    passed_date_str = event['date']
+    timezone = event.get('timezone', 'America/Montreal')  # Default to 'America/Montreal' if not specified
+
+    # Setup the timezone
+    eastern = pytz.timezone(timezone)
+
+    # Extract the date from the event, or use the current date in the specified timezone
+    passed_date_str = event.get('date', datetime.now(eastern).strftime('%Y%m%d'))
 
     calendar_file_path = 'calendar/calendar.parquet'
     trips_file_path = 'trips/trips.parquet'
     stop_times_file_path = 'stop_times/stop_times.parquet'
-
-    # Setup the timezone
-    eastern = pytz.timezone(timezone)
 
     # New: Parse the passed date instead of using datetime.now()
     now = datetime.strptime(passed_date_str, '%Y%m%d').replace(tzinfo=eastern)
