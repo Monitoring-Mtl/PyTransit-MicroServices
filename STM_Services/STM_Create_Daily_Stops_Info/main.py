@@ -51,8 +51,8 @@ def lambda_handler(event, context):
     )
     
     # Ensure data types for 'stop_id' match
-    stops_df['stop_id'] = stops_df['stop_id'].astype(str)
-    filtered_stop_times_df['stop_id'] = filtered_stop_times_df['stop_id'].astype(str)
+    stops_df = stops_df.with_columns(stops_df['stop_id'].cast(pl.Utf8))
+    filtered_stop_times_df = filtered_stop_times_df.with_columns(filtered_stop_times_df['stop_id'].cast(pl.Utf8))
 
     # Merge with filtered_trips_df
     merged_df = filtered_stop_times_df.join(
@@ -75,8 +75,10 @@ def lambda_handler(event, context):
         how='left'
     )
 
-    # Create the route_info column
-    merged_df['route_info'] = merged_df.apply(create_route_info, axis=1)
+    # Apply the function on the DataFrame
+    merged_df = merged_df.with_columns([
+        create_route_info(merged_df['route_id'], merged_df['route_long_name'], merged_df['trip_headsign']).alias('route_info')
+    ])
     
     # Select required columns
     final_df = merged_df[['route_id', 'route_info', 'trip_id', 'shape_id', 'wheelchair_accessible', 
@@ -129,13 +131,15 @@ def convert_to_unix(time_str, base_date, timezone_str):
     return int(local_dt.timestamp())
 
 
-def create_route_info(row):
+def create_route_info(route_id, route_long_name, trip_headsign):
     direction_mapping = {'E': 'EST', 'O': 'OUEST', 'S': 'SUD', 'N': 'NORD'}
-    trip_headsign = row['trip_headsign']
-    if isinstance(trip_headsign, str):
-        direction = trip_headsign[-1]
-        translated_direction = direction_mapping.get(direction, direction)
-        route_info = f"{row['route_id']} {row['route_long_name']} dir. {translated_direction}"
-    else:
-        route_info = f"{row['route_id']} {row['route_long_name']}"
+
+    # Extract the last character of trip_headsign as direction
+    direction = pl.col('trip_headsign').str.slice(-1)
+
+    # Map the extracted direction to the translated direction
+    translated_direction = direction.apply(lambda x: direction_mapping.get(x, x))
+
+    # Construct the route_info
+    route_info = route_id + " " + route_long_name + " dir. " + translated_direction
     return route_info
