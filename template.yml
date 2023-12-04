@@ -204,7 +204,7 @@ Outputs:
     Description: "STM Create Daily Stops Info files Lambda Function ARN"
     Value: !GetAtt STMCreateDailyStopsInfo.Arn
 
-  STMMergeDailyGTFSVechiclePositionsInfoFunctionArn:
-    Description: "STM Merge Daily GTFS Vehicle Positions files Lambda Function ARN"
+  STMMergeDailyGTFSVechiclePositionsFunctionArn:
+    Description: "STM Merge Daily GTFS Vehicle Positions files into one single file Lambda Function ARN"
     Value: !GetAtt STMMergeDailyGTFSVechiclePositions.Arn
 
