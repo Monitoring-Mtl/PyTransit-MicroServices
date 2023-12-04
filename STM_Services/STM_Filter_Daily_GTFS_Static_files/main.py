@@ -99,7 +99,10 @@ def lambda_handler(event, context):
 
     # Filter stop_times DataFrame based on trip_id
     filtered_stop_times_df = stop_times_df.filter(pl.col('trip_id').is_in(unique_trip_ids))
-
+    print(filtered_stop_times_df.head(5))
+    print(filtered_stop_times_df.dtypes)
+    print(filtered_stop_times_df.describe)
+    
     # Write filtered_stop_times to /tmp and upload to S3
     local_filtered_stop_times_path = f"/tmp/filtered_stop_times_{file_name}.parquet"
     write_df_to_parquet_to_tmp(filtered_stop_times_df, local_filtered_stop_times_path)
