@@ -1,4 +1,4 @@
 polars==0.19.19
 fastparquet==2023.10.1
 Requests==2.31.0
-urllib3==2.1.0
+urllib3<2
