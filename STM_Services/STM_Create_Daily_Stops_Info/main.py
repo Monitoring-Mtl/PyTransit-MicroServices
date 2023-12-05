@@ -85,7 +85,7 @@ def lambda_handler(event, context):
                           'arrival_time_unix', 'stop_id', 'stop_name', 'stop_lat', 'stop_lon', 'wheelchair_boarding']]
 
     # Write and upload the DataFrame to S3
-    output_file_path = f'{folder_name}/daily_stops_info/daily_stops_info_{file_name}.parquet.gz'
+    output_file_path = f'{folder_name}/daily_stops_info/daily_stops_info_{file_name}.parquet'
     local_output_path = f"/tmp/{os.path.basename(output_file_path)}"
     write_df_to_parquet_to_tmp(final_df, local_output_path)
     upload_file_from_tmp(output_bucket, output_file_path, local_output_path)
