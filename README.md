@@ -47,7 +47,6 @@
   <p align="center">
     Projet de fin d'etude - Automne 2023 - ETS Montreal
     <br />
-    <a href="https://github.com/Monitoring-Mtl/Serverless-API/wiki"><strong>Explorer la documentation »</strong></a>
   </p>
 </div>
 
