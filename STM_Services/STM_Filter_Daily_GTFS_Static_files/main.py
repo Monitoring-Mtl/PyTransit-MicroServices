@@ -76,7 +76,8 @@ def lambda_handler(event, context):
     # Write service_ids to /tmp and upload to S3
     local_service_ids_path = f"/tmp/service_ids_{file_name}.parquet"
     write_df_to_parquet_to_tmp(service_ids_df, local_service_ids_path)
-    upload_file_from_tmp(output_bucket, f'{output_base_path}service_ids/service_ids_{file_name}.parquet', local_service_ids_path)
+    #### ON N'UPLOAD PAS LE SERVICE ID finalement, il ne sert à rien par la suite. 
+    #upload_file_from_tmp(output_bucket, f'{output_base_path}service_ids/service_ids_{file_name}.parquet', local_service_ids_path)
 
     # Load trips.csv from S3 into DataFrame
     local_trips_file_path = download_file_to_tmp(input_bucket, trips_file_path)
