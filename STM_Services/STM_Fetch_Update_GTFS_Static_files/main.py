@@ -6,9 +6,6 @@ from io import BytesIO
 import polars as pl
 import datetime
 
-# bucket_name = os.environ.get('BUCKET_NAME')
-# url = os.environ.get('ZIP_URL')
-
 s3 = boto3.client('s3')
 
 LAST_MODIFIED_KEY = "Last_modified.txt"
