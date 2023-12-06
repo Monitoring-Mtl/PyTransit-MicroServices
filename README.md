@@ -119,9 +119,9 @@ Voici la liste des frameworks et des outils que nous utilisons dans le projet :
 
 * [![Python][Python]][Python-url]
 * [![AWS][AWS]][AWS-url]
-* [![Parquet][Parquet][Parquet-url]
+* [![Parquet][Parquet]][Parquet-url]
 * [![Pandas][Pandas]][Pandas-url]
-* [![Polars][Polars][Polars-url]
+* [![Polars][Polars]][Polars-url]
 * [![GitHub][GitHub]][GitHub-url]
 * [![GitHubActions][GitHubActions]][GitHubActions-url]
 
