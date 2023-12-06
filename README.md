@@ -119,7 +119,9 @@ Voici la liste des frameworks et des outils que nous utilisons dans le projet :
 
 * [![Python][Python]][Python-url]
 * [![AWS][AWS]][AWS-url]
+* [![Parquet][Parquet][Parquet-url]
 * [![Pandas][Pandas]][Pandas-url]
+* [![Polars][Polars][Polars-url]
 * [![GitHub][GitHub]][GitHub-url]
 * [![GitHubActions][GitHubActions]][GitHubActions-url]
 
@@ -329,6 +331,10 @@ Les branches doivent etre nommber avec le numero de issue generer dans le kanban
 [Python-url]: https://docs.python.org/3/
 [Pandas]: https://img.shields.io/badge/pandas-%23150458.svg?style=for-the-badge&logo=pandas&logoColor=white
 [Pandas-url]: https://pandas.pydata.org/
+[Polars]: https://img.shields.io/badge/-Polars-CD792C?style=for-the-badge&logo=polars&logoColor=white
+[Polars-url]: https://pola.rs/
+[Parquet]: https://img.shields.io/badge/-apacheparquet-50ABF1?style=for-the-badge&logo=apacheparquet&logoColor=white
+[Parquet-url]: https://parquet.apache.org/
 
 
 ## LICENSE

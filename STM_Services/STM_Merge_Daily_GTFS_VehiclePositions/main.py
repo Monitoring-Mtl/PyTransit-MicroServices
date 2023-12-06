@@ -66,9 +66,7 @@ def lambda_handler(event, context):
 
 
 def download_from_s3(bucket_name, file_key):
-    """
-    Download a file from S3 and return it as a Polars DataFrame.
-    """
+
     try:
         response = s3.get_object(Bucket=bucket_name, Key=file_key)
         return pl.read_parquet(io.BytesIO(response['Body'].read()))
@@ -78,9 +76,7 @@ def download_from_s3(bucket_name, file_key):
 
 
 def upload_to_s3(bucket_name, key, dataframe):
-    """
-    Save a DataFrame as a Parquet file in /tmp, then upload it to an S3 bucket.
-    """
+
     temp_file_path = '/tmp/file.parquet'
 
     try:
@@ -101,9 +97,7 @@ def upload_to_s3(bucket_name, key, dataframe):
 
 
 def process_file(file_key, all_columns, source_bucket_name):
-    """
-    Process a single file.
-    """
+
     df = download_from_s3(source_bucket_name, file_key)
     if df is None:
         return None
@@ -133,7 +127,7 @@ def process_file(file_key, all_columns, source_bucket_name):
 
 def process_files(file_keys, all_columns, source_bucket_name, workers):
     """
-    Process multiple files using multithreading.
+    Process multiple files using multithreading.(not sure that it makes a difference in Lambda...)
     """
     with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
         futures = [executor.submit(process_file, file_key, all_columns, source_bucket_name) for file_key in file_keys]

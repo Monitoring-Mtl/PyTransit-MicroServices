@@ -18,14 +18,14 @@ def lambda_handler(event, context):
     event_date = event['date'] 
     timezone = event.get('timezone', 'America/Montreal')
 
-    eastern = pytz.timezone('timezone')
+    eastern_tz = pytz.timezone('timezone')
     
     # Extract the date from the event, or use the current date in the specified timezone (Format YYYYMMDD)
-    date_str = event.get('date', datetime.now(eastern).strftime('%Y%m%d'))
+    date_str = event.get('date', datetime.now(eastern_tz).strftime('%Y%m%d'))
 
     # Parse the date string into a datetime object
     date_obj = datetime.strptime(date_str, '%Y%m%d')
-    date_obj = eastern.localize(date_obj)
+    date_obj = eastern_tz.localize(date_obj)
     TIME_THRESHOLD = 18000  # 5 hours in seconds
 
     # We get the date to evaluate and also determine the next day for the GTFS Json files
@@ -50,7 +50,7 @@ def lambda_handler(event, context):
     csv_data = pd.read_csv(local_csv_path)
 
     # Convert 'arrival_time' to UNIX timestamps
-    csv_data['arrival_time_unix'] = csv_data['arrival_time'].apply(lambda x: time_to_unix(x, file_date, timezone))
+    csv_data['arrival_time_unix'] = csv_data['arrival_time'].apply(lambda x: time_to_unix(x, date_obj, timezone))
 
     # Prepare a new column for the offset
     csv_data['offset'] = None
