@@ -14,8 +14,7 @@ def lambda_handler(event, context):
     # Define some variables based on the event.
     json_bucket_name = event['json_bucket_name']
     csv_bucket_name = event['csv_bucket_name']
-    updated_files_bucket_name = event['updated_files_bucket_name']
-    event_date = event['date'] 
+    updated_files_bucket_name = event['updated_files_bucket_name'] 
     timezone = event.get('timezone', 'America/Montreal')
 
     eastern_tz = pytz.timezone('timezone')
@@ -186,6 +185,19 @@ def time_to_unix(time_str, base_date, timezone_str):
         time_parts[0] -= 24
         base_date += timedelta(days=1)
     time_obj = base_date.replace(hour=time_parts[0], minute=time_parts[1], second=time_parts[2])
+    local_timezone = pytz.timezone(timezone_str)
+    local_dt = local_timezone.localize(time_obj, is_dst=None)
+    return int(local_dt.timestamp())
+
+def convert_to_unix(time_str, base_date, timezone_str):
+    time_parts = [int(part) for part in time_str.split(':')]
+    days_to_add = 0
+    if time_parts[0] >= 24:
+        time_parts[0] -= 24
+        days_to_add = 1
+    naive_base_date = base_date.replace(tzinfo=None)
+    time_obj = naive_base_date.replace(hour=time_parts[0], minute=time_parts[1], second=time_parts[2])
+    time_obj += timedelta(days=days_to_add)
     local_timezone = pytz.timezone(timezone_str)
     local_dt = local_timezone.localize(time_obj, is_dst=None)
     return int(local_dt.timestamp())
