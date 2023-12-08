@@ -18,17 +18,7 @@ def download_file_to_tmp(bucket, key, local_file_name):
         return None
 
 
-def read_file_from_s3(bucket, key):
-    try:
-        response = s3.get_object(Bucket=bucket_name, Key=key)
-        return pl.read_parquet(io.BytesIO(response['Body'].read()))
-    except Exception as e:
-        print(f"Error reading file {key} from S3: {e}")
-        return None
-
-
 def adding_arrival_time_unix(df_temp):
-
     df_temp = df_stop_times.with_columns(df_stop_times['arrival_time'].str.split_exact(':', 2).struct.
                                          rename_fields(["hours", "minutes", "seconds"])
                                          .alias('time_split')).unnest('time_split')
@@ -57,15 +47,41 @@ def adding_arrival_time_unix(df_temp):
 
     # Convert to UNIX timestamp
     df_temp = df_temp.with_columns(
-        pl.col("datetime").dt.timestamp('ms').alias("arrival_unix_time")
+        pl.col("datetime").dt.timestamp('ms').alias("arrival_time_unix")
     )
 
     return df_temp.select(pl.col('trip_id'), pl.col('arrival_time'), pl.col('stop_id'), pl.col('stop_sequence')
-                          , (pl.col('arrival_unix_time') / 1000).cast(pl.Int64))
+                          , (pl.col('arrival_time_unix') / 1000).cast(pl.Int64)).sort(['trip_id', 'arrival_time_unix'])
 
-#def get_offset_vehicleid_occupancy():
-    
 
+def rename_and_convert_columns(df):
+    df_temp = df.rename({'vehicle_trip_tripId': 'trip_id'})
+    try:
+        df_temp = df_temp.cast({'id': pl.Int32,'timefetch': pl.Int64, 'vehicle_position_bearing': pl.Int32,
+                                'vehicle_position_latitude': pl.Float64, 'vehicle_position_longitude': pl.Float64,
+                               'vehicle_position_speed': pl.Float64, 'vehicle_timestamp': pl.Int64, 'trip_id': pl.Int64})
+    except Exception as e:
+        print(f'Error {e} converting columns type of {df}')
+        raise
+    return df_temp.sort(['trip_id', 'timefetch'])
+
+
+def filter_daily_vehicle_position(df):
+    # Creating a column to identify where the vehicle_currentStopSequence changes
+    df_temp = df.with_columns(
+        pl.col("vehicle_currentStopSequence").diff().ne(0).alias("stop_sequence_changed")
+    )
+
+    # Filtering the DataFrame based on the specified conditions
+    filtered_merged_df = df_temp.filter(
+        (pl.col("stop_sequence_changed") & (pl.col("vehicle_currentStatus") == "IN_TRANSIT_TO")) |
+        (pl.col("vehicle_currentStatus") == "STOPPED_AT")
+    )
+
+    return filtered_merged_df.drop("stop_sequence_changed")
+
+def calculate_offset_vehicleid_occupancy():
+    return None
 
 
 start_time = time.time()
@@ -114,29 +130,45 @@ df = pl.read_parquet(local_day_path)
 df_next_day = pl.read_parquet(local_next_day_path)
 df_stop_times = pl.read_parquet(local_path_static)
 
-#df_static = read_file_from_s3(bucket_static_daily, key_static)
-#df = read_file_from_s3(bucket_name, key)
-#df_next_day = read_file_from_s3(bucket_name, key_next_day)
+time_to_fetch = time.time()
 
-dfs = pl.concat([df, df_next_day], rechunk=True)
-
-df_stop_times = df_stop_times.drop('departure_time')
-
-# ['trip_id' , 'arrival_time' , 'stop_id' , 'stop_sequence' , 'arrival_time_unix']
+df_stop_times = df_stop_times.drop({'departure_time'})
+# We create the new column 'arrival_time_unix' converting the time in UNIX.
 df_stops_unix = adding_arrival_time_unix(df_stop_times)
 
+# Merge the two DFs (current_day + next_day) of VehiclePositions
+dfs_daily_vehicle_positions_merge = pl.concat([df, df_next_day], rechunk=True)
+
+# We rename a column and convert the type of others
+dfs_daily_vehicle_positions_merge = rename_and_convert_columns(dfs_daily_vehicle_positions_merge)
+dfs_daily_vehicle_positions_merge.write_parquet('dfs_daily_vehicle_positions_merge.parquet') #For the MAP
 
 
+# We filter to only keep the positions(rows) we need to evaluate the offset, occupancy and wheelchair info
+df_filtered_vehicle_positions = filter_daily_vehicle_position(dfs_daily_vehicle_positions_merge)
+df_filtered_vehicle_positions.write_parquet('df_filtered_vehicle_positions.parquet') #For the MAP
 
 
+# We create the new column 'arrival_time_unix' converting the time in UNIX.
+df_stops_unix = adding_arrival_time_unix(df_stop_times)
+
+# We then select reduce the number of rows to keep only one value for a stop_sequence
+df_merge = df_filtered_vehicle_positions.join(df_stops_unix, how='outer',
+                                              left_on=['trip_id', 'vehicle_currentStopSequence'],
+                                              right_on=['trip_id', 'stop_sequence'])
+# We remove the rows of data that doesn't have an arrival_time_unix (see the documentation for why that would happen)
+df_merge = df_merge.filter(pl.col('arrival_time_unix').is_not_null())
+
+print(df_merge.columns)
+print(df_merge.dtypes)
+print(df_merge.head(5))
+
+df_merge.write_csv('merge_csv.csv')
 
 
-
-
-
-
-
-print(f'Duration:{time.time() - start_time}')
+print(f'Duration for Download:{time_to_fetch - start_time}')
+print(f'Duration to process:{time.time() - time_to_fetch}')
+print(f'Duration total:{time.time() - start_time}')
 
 
 
