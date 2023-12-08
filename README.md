@@ -148,35 +148,37 @@ Voici la liste des frameworks et des outils que nous utilisons dans le projet :
 
 ## Fonctions - STM
 
+
 ### STM_Fetch_GTFS_TripUpdates
 
-Service Python qui permet de récupérer les données GTFS Live pour l'estimation des horaires de la STM et d'enregistrer le fichier JSON de réponse dans un format GZIP (afin de diminuer l'espace requis) dans un bucket S3 dans un répertoire correspondant à la date de la journée.
+Service Python qui permet de récupérer les données des mises à jour d'horaire de la part du STM, le fichier est ensuite converti en fichier Apache Parquet et enregistrer dans un bucket S3 dans un répertoire correspondant à la date de la journée. La fonction "blabla" en fait l'aggrégation le lendemain. 
 
 
 ### STM_Fetch_GTFS_VehiclePositions 
 
-Service Python qui permet de récupérer les données GTFS Live pour les positions des véhicules de la STM et d'enregistrer le fichier JSON de réponse dans un format GZIP (afin de diminuer l'espace requis) dans un bucket S3 dans un répertoire correspondant à la date de la journée.
+Service Python qui permet de récupérer les données GTFS pour les positions des véhicules de la STM, le fichier est ensuite converti en fichier Apache Parquet et enregistrer dans un bucket S3 dans un répertoire correspondant à la date de la journée. La fonction "STM_Merge_Daily_GTFS_VehiclePositions" en fait l'aggrégation le lendemain. 
 
 
 ### STM_Fetch_Update_Static_files
 
-Service Python qui permet de récupérer les fichiers static GTFS de la STM et de les déposer dans un bucket S3 selon une structure de répertoire. La fonction 
+Service Python qui permet de récupérer les fichiers static GTFS de la STM à partir de leur URL et de les déposer dans un bucket S3 selon une structure de répertoire. La fonction 
 valide si les fichiers présents sont les derniers à jour, sinon elle récupère les nouveaux fichiers et les met à jour.
+
 
 ### STM_Filter_Daily_GTFS_Static_files
 
-Service Python qui permet de créer la liste de service_id, de trip_id et de stop_times valident pour la journée à partir des fichier static. Et de les déposer dans un nouveau 
-bucket S3. 
+Service Python qui crée les fichiers : "filtered_stop_times_YYYY-MM-DD.parquet", "filtered_trips_YYYY-MM-DD.parquet", ces fichiers correspondent à l'horaire de la journée et sont utilisés pour l'analyse. 
 
 
 ### STM_Analyse_Daily_Stops_Data
 
-Service Python qui permet de d'analyser le Delta des autobus par rapport au temps prévu d'arrivé aux arrêts. Il récupère également l'information concernant le niveau d'occupation 
-des autobus.
+Service python qui effectue une analyse de base sur la ponctualité des autobus aux arrêts par rapport au temps prévu, le service permet aussi de récupérer le nombre de places de fauteuil roulant disponibles selon le type de véhicule et finalement détermine le niveau d'occupation à chaque arrêt. 
+
 
 ### STM_Merge_Daily_GTFS_VehiclePositions
 
-Service Python qui permet de concaténer l'ensemble des fichiers GTFS VehiclePosition acquis dans une journée.Le processus pour concaténer au fur et à mesure des "fetch" durant la journée prend trops de temps lors de l'exécution de la Lambda du service "STM_Fetch_GTFS_VehiclePositions", c'est la raison pour laquelle nous effectuons la fusionner de tout les fichiers dans un seul fichier ".parquet" qui sera utiliser lors des analyses ou pour la récupération d'informations sur une journée.
+Service Python qui récupère l'ensemble des fichiers créé par "STM_Fetch_GTFS_VehiclePositions" et qui crée un seul fichier. Ceci permet de réduire l'espace utilisé sur S3, mais aussi améliore la vitesse pour les analyses et du service Athena. 
+
 
 <p align="right">(<a href="#readme-top">haut</a>)</p>
 
