@@ -80,6 +80,28 @@ def filter_daily_vehicle_position(df):
 
     return filtered_merged_df.drop("stop_sequence_changed")
 
+
+def calculate_arrival_departure_offset(df):
+    try:
+        # Calculate the first and last offset for each group
+        first_offset = df.group_by(['trip_id', 'vehicle_currentStopSequence']).agg(
+            pl.first('offset').alias('arrival_time_offset')
+        ).with_columns(pl.col('vehicle_currentStopSequence').cast(pl.Int64))  # Cast if necessary
+
+        last_offset = df.group_by(['trip_id', 'vehicle_currentStopSequence']).agg(
+            pl.last('offset').alias('departure_time_offset')
+        ).with_columns(pl.col('vehicle_currentStopSequence').cast(pl.Int64))  # Cast if necessary
+
+        # Join the first and last offsets back to the original DataFrame
+        df = df.join(first_offset, on=['trip_id', 'vehicle_currentStopSequence'], how='left')
+        df = df.join(last_offset, on=['trip_id', 'vehicle_currentStopSequence'], how='left')
+        return df
+    except Exception as e:
+        print(f'Failed to calculate arrival_departure_offset of {df.describe()}')
+        print(f'Error: {e}')
+        raise
+
+
 def calculate_offset_vehicleid_occupancy():
     return None
 
@@ -141,29 +163,66 @@ dfs_daily_vehicle_positions_merge = pl.concat([df, df_next_day], rechunk=True)
 
 # We rename a column and convert the type of others
 dfs_daily_vehicle_positions_merge = rename_and_convert_columns(dfs_daily_vehicle_positions_merge)
-dfs_daily_vehicle_positions_merge.write_parquet('dfs_daily_vehicle_positions_merge.parquet') #For the MAP
+dfs_daily_vehicle_positions_merge.write_parquet('dfs_daily_vehicle_positions_merge.parquet') #Used to generate the map
 
 
 # We filter to only keep the positions(rows) we need to evaluate the offset, occupancy and wheelchair info
 df_filtered_vehicle_positions = filter_daily_vehicle_position(dfs_daily_vehicle_positions_merge)
-df_filtered_vehicle_positions.write_parquet('df_filtered_vehicle_positions.parquet') #For the MAP
+df_filtered_vehicle_positions.write_parquet('df_filtered_vehicle_positions.parquet') #Used to generate the map
 
 
 # We create the new column 'arrival_time_unix' converting the time in UNIX.
 df_stops_unix = adding_arrival_time_unix(df_stop_times)
 
-# We then select reduce the number of rows to keep only one value for a stop_sequence
+# We then reduce the number of rows to keep, only the one with value for a stop_sequence
 df_merge = df_filtered_vehicle_positions.join(df_stops_unix, how='outer',
                                               left_on=['trip_id', 'vehicle_currentStopSequence'],
                                               right_on=['trip_id', 'stop_sequence'])
 # We remove the rows of data that doesn't have an arrival_time_unix (see the documentation for why that would happen)
 df_merge = df_merge.filter(pl.col('arrival_time_unix').is_not_null())
+df_merge = df_merge.filter(pl.col('vehicle_timestamp').is_not_null())
 
-print(df_merge.columns)
-print(df_merge.dtypes)
-print(df_merge.head(5))
+df_merge = df_merge.with_columns((pl.col('timefetch')-pl.col('arrival_time_unix')).alias('offset'))
 
-df_merge.write_csv('merge_csv.csv')
+# Filter out rows where the absolute value of the offset is greater than 18000 seconds(5 hours)(trip_id of the next_day)
+df_time_difference = df_merge.filter(pl.col('offset').abs() <= 18000)
+
+df_time_difference = df_time_difference.with_columns(pl.lit(None).alias('offset'))
+
+# Calculate the offset only when vehicle_currentStatus is STOPPED_AT
+df_time_difference = df_time_difference.with_columns([
+    pl.when(pl.col('vehicle_currentStatus') == "STOPPED_AT")
+    .then(pl.col('vehicle_timestamp') - pl.col('arrival_time_unix'))
+    .otherwise(None)
+    .alias('offset')
+])
+
+# Sort the DF by 'trip_id' and 'vehicle_currentStopSequence'
+df_time_difference = df_time_difference.sort(['trip_id', 'vehicle_currentStopSequence'])
+
+# Use the `shift()` function to get the 'vehicle_timestamp' of the next 'vehicle_currentStopSequence'
+# within each 'trip_id'. We shift by -1 to get the next value.
+df_time_difference = df_time_difference.with_columns(
+    pl.col('vehicle_timestamp').shift(-1).over('trip_id').alias('next_vehicle_timestamp')
+)
+
+# Calculate the offset for 'IN_TRANSIT_TO' using the 'next_vehicle_timestamp'
+# If the next row is from a different 'trip_id', we should not calculate the offset, so we also check for this
+df_time_difference = df_time_difference.with_columns([
+    pl.when(
+        (pl.col('vehicle_currentStatus') == 'IN_TRANSIT_TO') &
+        (pl.col('trip_id') == pl.col('trip_id').shift(-1))
+    ).then(
+        pl.col('next_vehicle_timestamp') - pl.col('arrival_time_unix')
+    ).otherwise(
+        pl.col('offset')  # Keep the existing offset if the condition is not met
+    ).alias('offset')
+])
+
+# Determine the arrival and departure offset for each stop if possible
+df_time_difference = calculate_arrival_departure_offset(df_time_difference)
+
+df_time_difference.write_csv('df_time_difference.csv')
 
 
 print(f'Duration for Download:{time_to_fetch - start_time}')
