@@ -9,6 +9,13 @@ import io
 
 
 def download_file_to_tmp(bucket, key, local_file_name):
+    """
+    Download a file from a S3 bucket and stores it locally
+    :param bucket: Bucket name in S3
+    :param key: the key of the file to retrieve
+    :param local_file_name: the path where to store it locally
+    :return: the local path if success, none if failed.
+    """
     local_path = local_file_name
     try:
         s3.download_file(Bucket=bucket, Key=key, Filename=local_path)
@@ -19,6 +26,14 @@ def download_file_to_tmp(bucket, key, local_file_name):
 
 
 def adding_arrival_time_unix(df_temp):
+    """
+    Create a new column "arrival_time_unix", it uses the existing column "arrival_time" and using the day passed in
+    the event convert that time in a UNIX value for the timezone (also given in the event). In case where the value is
+    greater than 23:59:59, we increment the date by 1. ex: (event date: 2023-12-01) 25:54:00 -> 1:54:00 AM of 2023-12-02
+    and then convert that to a UNIX value
+    :param df_temp: Dataframe to apply the addition to
+    :return: Dataframe with the modification sorted by trip_id and arrival_time_unix
+    """
     df_temp = df_stop_times.with_columns(df_stop_times['arrival_time'].str.split_exact(':', 2).struct.
                                          rename_fields(["hours", "minutes", "seconds"])
                                          .alias('time_split')).unnest('time_split')
@@ -81,7 +96,81 @@ def filter_daily_vehicle_position(df):
     return filtered_merged_df.drop("stop_sequence_changed")
 
 
+def calculate_offset_for_stopped_status(df):
+    """
+    Calculate the offset for the stop_sequence where the vehicle_status is "stopped_at"
+    :param df: Dataframe to calculate the offset on
+    :return: Dataframe sorted by trip_id and vehicle_stop
+    """
+    df = df.with_columns([
+        pl.when(pl.col('vehicle_currentStatus') == "STOPPED_AT")
+        .then(pl.col('vehicle_timestamp') - pl.col('arrival_time_unix'))
+        .otherwise(None)
+        .alias('offset')
+    ])
+
+    # return the DF sorted by 'trip_id' and 'vehicle_currentStopSequence'
+    return df.sort(['trip_id', 'vehicle_currentStopSequence'])
+
+
+def calculate_offset_for_in_transit_status(df):
+    # Use the `shift()` function to get the 'vehicle_timestamp' of the next 'vehicle_currentStopSequence'
+    # within each 'trip_id'. We shift by -1 to get the next value.
+    df = df.with_columns(
+        pl.col('vehicle_timestamp').shift(-1).over('trip_id').alias('next_vehicle_timestamp')
+    )
+
+    # Calculate the offset for 'IN_TRANSIT_TO' using the 'next_vehicle_timestamp'
+    # If the next row is from a different 'trip_id', we should not calculate the offset, so we also check for this
+    df = df.with_columns([
+        pl.when(
+            (pl.col('vehicle_currentStatus') == 'IN_TRANSIT_TO') &
+            (pl.col('trip_id') == pl.col('trip_id').shift(-1))
+        ).then(
+            pl.col('next_vehicle_timestamp') - pl.col('arrival_time_unix')
+        ).otherwise(
+            pl.col('offset')  # Keep the existing offset if the condition is not met
+        ).alias('offset')
+    ])
+
+    return df.sort(['trip_id', 'vehicle_currentStopSequence'])
+
+
+def calculate_offset_for_last_stop_sequence(df):
+    # Create a column with the 'vehicle_timestamp' of the next row with the same 'vehicle_vehicle_id'
+    df = df.with_column(
+        pl.when(pl.col('vehicle_vehicle_id') == pl.col('vehicle_vehicle_id').shift(-1))
+        .then(pl.col('vehicle_timestamp').shift(-1))
+        .otherwise(pl.lit(None))
+        .alias('next_vehicle_timestamp')
+    )
+
+    # Calculate the offset using the new 'next_vehicle_timestamp' column
+    # Make sure to compare the vehicle IDs to ensure they are the same before using the next timestamp
+    df = df.with_columns([
+        pl.when(
+            (pl.col('vehicle_currentStatus') != 'STOPPED_AT') &
+            (pl.col('vehicle_vehicle_id') == pl.col('vehicle_vehicle_id').shift(-1)) &
+            (pl.col('vehicle_currentStopSequence') == pl.col('vehicle_currentStopSequence').max().over('trip_id'))
+        ).then(
+            pl.col('next_vehicle_timestamp') - pl.col('arrival_time_unix')
+        ).otherwise(
+            pl.col('offset')
+        ).alias('offset')
+    ])
+
+    return df.sort(['trip_id', 'vehicle_currentStopSequence'])
+
+
 def calculate_arrival_departure_offset(df):
+    """
+    Calculate the arrival and departure time offset based on how many value there is for a stop_sequence
+    If we have more than one value of offsets for a stop_sequence, we have the information of arrival and departure
+    to that stop, we then take the lowest has arrival and highest as departure. If we have 1 value we assign that one
+    for both (arrival and departure offset)
+    :param df: Dataframe to calculate
+    :return: Dataframe with values added
+    """
     try:
         # Calculate the first and last offset for each group
         first_offset = df.group_by(['trip_id', 'vehicle_currentStopSequence']).agg(
@@ -100,10 +189,6 @@ def calculate_arrival_departure_offset(df):
         print(f'Failed to calculate arrival_departure_offset of {df.describe()}')
         print(f'Error: {e}')
         raise
-
-
-def calculate_offset_vehicleid_occupancy():
-    return None
 
 
 start_time = time.time()
@@ -182,42 +267,25 @@ df_merge = df_filtered_vehicle_positions.join(df_stops_unix, how='outer',
 df_merge = df_merge.filter(pl.col('arrival_time_unix').is_not_null())
 df_merge = df_merge.filter(pl.col('vehicle_timestamp').is_not_null())
 
+
+# We create a column 'offset' and calculate a value to be able to the remove the vehiclePosition of the next day.
 df_merge = df_merge.with_columns((pl.col('timefetch')-pl.col('arrival_time_unix')).alias('offset'))
-
-# Filter out rows where the absolute value of the offset is greater than 18000 seconds(5 hours)(trip_id of the next_day)
+# Filter out rows where the absolute value of the offset is greater than 1800 seconds(5 hours)(trip_id of the next_day)
 df_time_difference = df_merge.filter(pl.col('offset').abs() <= 18000)
-
 df_time_difference = df_time_difference.with_columns(pl.lit(None).alias('offset'))
 
-# Calculate the offset only when vehicle_currentStatus is STOPPED_AT
-df_time_difference = df_time_difference.with_columns([
-    pl.when(pl.col('vehicle_currentStatus') == "STOPPED_AT")
-    .then(pl.col('vehicle_timestamp') - pl.col('arrival_time_unix'))
-    .otherwise(None)
-    .alias('offset')
-])
+# Calculate offset for "STOPPED_AT" VehicleStatus
+df_time_difference = calculate_offset_for_stopped_status(df_time_difference)
 
-# Sort the DF by 'trip_id' and 'vehicle_currentStopSequence'
-df_time_difference = df_time_difference.sort(['trip_id', 'vehicle_currentStopSequence'])
+df_time_difference.write_csv('df_time_stopped_at.csv')
 
-# Use the `shift()` function to get the 'vehicle_timestamp' of the next 'vehicle_currentStopSequence'
-# within each 'trip_id'. We shift by -1 to get the next value.
-df_time_difference = df_time_difference.with_columns(
-    pl.col('vehicle_timestamp').shift(-1).over('trip_id').alias('next_vehicle_timestamp')
-)
+# Calculate offset for "IN_TRANSIT_TO" VehicleStatus
+df_time_difference = calculate_offset_for_in_transit_status(df_time_difference)
 
-# Calculate the offset for 'IN_TRANSIT_TO' using the 'next_vehicle_timestamp'
-# If the next row is from a different 'trip_id', we should not calculate the offset, so we also check for this
-df_time_difference = df_time_difference.with_columns([
-    pl.when(
-        (pl.col('vehicle_currentStatus') == 'IN_TRANSIT_TO') &
-        (pl.col('trip_id') == pl.col('trip_id').shift(-1))
-    ).then(
-        pl.col('next_vehicle_timestamp') - pl.col('arrival_time_unix')
-    ).otherwise(
-        pl.col('offset')  # Keep the existing offset if the condition is not met
-    ).alias('offset')
-])
+df_time_difference.write_csv('df_time_in_transit.csv')
+
+# Calculate offset for the last stop of a trip
+df_time_difference = calculate_offset_for_last_stop_sequence(df_time_difference)
 
 # Determine the arrival and departure offset for each stop if possible
 df_time_difference = calculate_arrival_departure_offset(df_time_difference)
