@@ -62,7 +62,6 @@ def lambda_handler(event, context):
         calendar_df = calendar_df.with_columns(pl.col('end_date').cast(pl.Utf8).str.strptime(pl.Date, "%Y%m%d"))
 
     # Convert current_date to the same format for comparison
-    current_date = datetime.now().strftime('%Y%m%d')
     current_date = pl.lit(current_date).str.strptime(pl.Date, "%Y%m%d")
 
 

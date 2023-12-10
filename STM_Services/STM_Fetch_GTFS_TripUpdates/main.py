@@ -1,6 +1,7 @@
 from google.protobuf.json_format import MessageToDict
 import pandas as pd
 import boto3
+import fastparquet
 from google.transit import gtfs_realtime_pb2
 from urllib.request import Request, urlopen
 from datetime import datetime

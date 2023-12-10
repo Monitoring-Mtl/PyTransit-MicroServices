@@ -1,6 +1,7 @@
 import boto3
-#import pandas as pd
+import pandas as pd
 import polars as pl
+import fastparquet
 import os
 from datetime import datetime, timedelta
 import pytz
