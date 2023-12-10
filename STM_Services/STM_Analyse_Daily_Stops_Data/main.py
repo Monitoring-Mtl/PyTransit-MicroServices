@@ -1,6 +1,5 @@
 import pandas
 import polars as pl
-import boto3
 import fastparquet
 from datetime import datetime, timedelta
 import time
