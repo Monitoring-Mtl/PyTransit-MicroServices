@@ -65,7 +65,7 @@ def lambda_handler(event, context):
     # We rename a column and convert the type of others
     dfs_daily_vehicle_positions_merge = rename_and_convert_columns(dfs_daily_vehicle_positions_merge)
 
-    dfs_daily_vehicle_positions_merge.write_parquet('dfs_daily_vehicle_positions_merge.parquet') #Used to generate the map
+    #dfs_daily_vehicle_positions_merge.write_parquet('dfs_daily_vehicle_positions_merge.parquet') #Used to generate the map
 
     # We proceed with the analysis of the DATA based on the daily stop_times file provided
     df_processed = process_based_on_daily_static_files(dfs_daily_vehicle_positions_merge, df_stops_unix)
@@ -98,13 +98,12 @@ def lambda_handler(event, context):
     )
 
     # Drop a double column and rename some.
-    df_final = df_final.drop('vehicle_currentStopSequence')
+    df_final = df_final.drop('vehicle_currentStatus')
     df_final = df_final.rename({'id': 'vehicleID', 'vehicle_occupancyStatus': 'Current_Occupancy',
                                 'vehicle_trip_routeId': 'routeId'})
 
 
     df_final.write_parquet(f'data_stops_{file_name}.parquet')
-    df_final.write_csv('df_final.csv')
 
     # Upload the final file back to S3
     output_key = f'{folder_name}/data_stops_{file_name}.parquet'  # Set your output file path here
@@ -323,7 +322,7 @@ def process_based_on_daily_static_files(dfs_daily_vehicle_positions_merge, df_st
     try:
         # We filter to only keep the positions(rows) we need to process (remove duplicate)
         df_filtered_vehicle_positions = filter_daily_vehicle_position(dfs_daily_vehicle_positions_merge)
-        df_filtered_vehicle_positions.write_parquet('df_filtered_vehicle_positions.parquet')  # Used to generate the map
+        #df_filtered_vehicle_positions.write_parquet('df_filtered_vehicle_positions.parquet')  # Used to generate the map
 
         # We then reduce the number of rows to keep, only the one with value for a stop_sequence
         df_merge = df_filtered_vehicle_positions.join(df_stops_unix, how='outer',
