@@ -1,3 +1,4 @@
+import boto3 #ASSURER VOUS QU'IL NE SOIT PAS DANS LE REQUIREMENTS.TXT
 import pandas
 import polars as pl
 import fastparquet
