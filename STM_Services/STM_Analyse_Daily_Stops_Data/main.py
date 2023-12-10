@@ -103,7 +103,7 @@ def lambda_handler(event, context):
                                 'vehicle_trip_routeId': 'routeId'})
 
 
-    df_final.write_parquet(f'data_stops_{file_name}.parquet')
+    df_final.write_parquet(f'/tmp/data_stops_{file_name}.parquet')
 
     # Upload the final file back to S3
     output_key = f'{folder_name}/data_stops_{file_name}.parquet'  # Set your output file path here
