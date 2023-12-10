@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import time
 import pytz
 import os
+import shutil
 import io
 
 s3 = boto3.client('s3')
@@ -109,6 +110,8 @@ def lambda_handler(event, context):
     output_key = f'{folder_name}/data_stops_{file_name}.parquet'  # Set your output file path here
     upload_file_from_tmp(f'/tmp/data_stops_{file_name}.parquet', output_bucket, output_key)
 
+    clean_tmp_folder()
+
 
 
 def download_file_to_tmp(bucket, key, local_file_name):
@@ -147,6 +150,19 @@ def upload_file_from_tmp(local_file_name, bucket, key):
     except Exception as e:
         print(f'Error uploading file to S3: {e}')
         return False
+
+
+def clean_tmp_folder():
+    tmp_dir = '/tmp'
+    for item in os.listdir(tmp_dir):
+        item_path = os.path.join(tmp_dir, item)
+        try:
+            if os.path.isfile(item_path) or os.path.islink(item_path):
+                os.unlink(item_path)
+            elif os.path.isdir(item_path):
+                shutil.rmtree(item_path)
+        except Exception as e:
+            print(f"Failed to delete {item_path}. Reason: {e}")
 
 
 def adding_arrival_time_unix(df_temp, date_obj):
