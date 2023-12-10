@@ -103,6 +103,7 @@ def lambda_handler(event, context):
     df_final = df_final.rename({'id': 'vehicleID', 'vehicle_occupancyStatus': 'Current_Occupancy',
                                 'vehicle_trip_routeId': 'routeId'})
 
+    df_final = df_final.cast({'routeId': pl.Int64})
 
     df_final.write_parquet(f'/tmp/data_stops_{file_name}.parquet')
 
