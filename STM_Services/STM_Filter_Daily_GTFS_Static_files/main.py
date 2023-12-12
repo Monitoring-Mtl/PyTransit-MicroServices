@@ -7,6 +7,7 @@ from datetime import datetime
 # Init S3 client
 s3 = boto3.client('s3')
 
+# Autodeploy
 def lambda_handler(event, context):
 
     # Define the buckets and file paths
