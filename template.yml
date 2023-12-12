@@ -119,6 +119,23 @@ Resources:
           API_URL_STM_VEHICLE: !Ref ApiUrlStmVehicle
           API_KEY_STM: !Ref ApiKeyStm
 
+  STMFilterDailyGTFStaticfilesTrigger:
+    Type: AWS::Events::Rule
+    Properties:
+      ScheduleExpression: cron(0 8 * * ? *)
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt STMFilterDailyGTFStaticfiles.Arn
+          Id: "TargetFunction"
+          
+  STMFilterDailyGTFStaticfilesPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt STMFilterDailyGTFStaticfiles.Arn
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt STMFilterDailyGTFStaticfilesTrigger.Arn
+
 ####################### ANALYZE #######################
   STMAnalyzeDailyStopsData:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -204,6 +221,10 @@ Outputs:
   STMFilterDailyGTFStaticfilesFunctionArn:
     Description: "STM Filter Daily GTFS Static files Lambda Function ARN"
     Value: !GetAtt STMFilterDailyGTFStaticfiles.Arn
+
+  STMFilterDailyGTFStaticfilesTriggerArn:
+    Description: "ARN of the EventBridge Rule for STMFilterDailyGTFStaticfiles"
+    Value: !GetAtt STMFilterDailyGTFStaticfilesTrigger.Arn
 
   STMAnalyzeDailyStopsDataFunctionArn: 
     Description: "STM Analyze Daily Stops Data Lambda Function ARN"
