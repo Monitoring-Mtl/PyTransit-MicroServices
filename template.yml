@@ -105,6 +105,27 @@ Resources:
           API_URL_STM_TRIP: !Ref ApiUrlStmTrip
           API_URL_STM_VEHICLE: !Ref ApiUrlStmVehicle
           API_KEY_STM: !Ref ApiKeyStm
+      Events:
+        DailyTrigger:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 8 * * ? *)
+            Enabled: true
+            Input: >-
+              {
+                "input_bucket": "monitoring-mtl-gtfs-static",
+                "output_bucket": "monitoring-mtl-gtfs-static-daily",
+                "timezone": "America/Montreal"
+              }
+        
+  STMFilterDailyGTFStaticfilesPermission:
+  Type: AWS::Lambda::Permission
+  Properties:
+    Action: lambda:InvokeFunction
+    FunctionName: !Ref STMFilterDailyGTFStaticfiles
+    Principal: events.amazonaws.com
+    SourceArn: !GetAtt DailyTrigger.Arn
+
 
   STMAnalyzeDailyStopsData:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -127,18 +148,6 @@ Resources:
             API_URL_STM_TRIP: !Ref ApiUrlStmTrip
             API_URL_STM_VEHICLE: !Ref ApiUrlStmVehicle
             API_KEY_STM: !Ref ApiKeyStm
-      Events:
-        DailyTrigger:
-          Type: Schedule
-          Properties:
-            Schedule: cron(0 8 * * ? *)
-            Enabled: true
-            Input: >-
-              {
-                "input_bucket": "monitoring-mtl-gtfs-static",
-                "output_bucket": "monitoring-mtl-gtfs-static-daily",
-                "timezone": "America/Montreal"
-              }
 
   STMCreateDailyStopsInfo:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
