@@ -71,7 +71,7 @@ def download_from_s3(bucket_name, file_key):
         response = s3.get_object(Bucket=bucket_name, Key=file_key)
         return pl.read_parquet(io.BytesIO(response['Body'].read()))
     except Exception as e:
-        print(f"Error downloading file from S3: {e}")
+        print(f"Error downloading file {file_key} from S3: {e}")
         return None
 
 

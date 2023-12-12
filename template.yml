@@ -93,19 +93,13 @@ Resources:
   STMFilterDailyGTFStaticfiles:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      Timeout: 60 # Timeout in seconds
+      Timeout: 180 # Timeout in seconds
       MemorySize: 2048
       CodeUri: STM_Services/STM_Filter_Daily_GTFS_Static_files/
       Handler: main.lambda_handler
       Runtime: python3.9
       Architectures:
         - x86_64
-      Events:
-        Start:
-          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
-          Properties:
-            Path: /filter
-            Method: get
       Environment:
         Variables:
           API_URL_STM_TRIP: !Ref ApiUrlStmTrip
@@ -133,6 +127,18 @@ Resources:
             API_URL_STM_TRIP: !Ref ApiUrlStmTrip
             API_URL_STM_VEHICLE: !Ref ApiUrlStmVehicle
             API_KEY_STM: !Ref ApiKeyStm
+      Events:
+        DailyTrigger:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 8 * * ? *)
+            Enabled: true
+            Input: >-
+              {
+                "input_bucket": "monitoring-mtl-gtfs-static",
+                "output_bucket": "monitoring-mtl-gtfs-static-daily",
+                "timezone": "America/Montreal"
+              }
 
   STMCreateDailyStopsInfo:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
