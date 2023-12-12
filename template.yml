@@ -90,6 +90,7 @@ Resources:
           API_URL_STM_VEHICLE: !Ref ApiUrlStmVehicle
           API_KEY_STM: !Ref ApiKeyStm
 
+####################### FILTER DAILY GTFS STATIC #######################
   STMFilterDailyGTFStaticfiles:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
@@ -101,31 +102,42 @@ Resources:
       Architectures:
         - x86_64
       Events:
-      DailyTrigger:
-        Type: Schedule
-        Properties:
-          Schedule: cron(0 8 * * ? *)
-          Enabled: true
-          Input: >-
-            {
-              "input_bucket": "monitoring-mtl-gtfs-static",
-              "output_bucket": "monitoring-mtl-gtfs-static-daily",
-              "timezone": "America/Montreal"
-            }
+        DailyTrigger:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 8 * * ? *)
+            Enabled: true
+            Input: >-
+              {
+                "input_bucket": "monitoring-mtl-gtfs-static",
+                "output_bucket": "monitoring-mtl-gtfs-static-daily",
+                "timezone": "America/Montreal"
+              }
       Environment:
         Variables:
           API_URL_STM_TRIP: !Ref ApiUrlStmTrip
           API_URL_STM_VEHICLE: !Ref ApiUrlStmVehicle
           API_KEY_STM: !Ref ApiKeyStm
 
-  STMFilterDailyGTFStaticfilesPermission:
-  Type: AWS::Lambda::Permission
-  Properties:
-    Action: lambda:InvokeFunction
-    FunctionName: !Ref STMFilterDailyGTFStaticfiles
-    Principal: events.amazonaws.com
-    SourceArn: !GetAtt DailyTrigger.Arn
+  STMFilterDailyGTFStaticfilesTrigger:
+    Type: AWS::Events::Rule
+    Properties:
+      ScheduleExpression: cron(0 8 * * ? *)
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt STMFilterDailyGTFStaticfiles.Arn
+          Id: "TargetFunction"
+          Input: '{"input_bucket": "monitoring-mtl-gtfs-static", "output_bucket": "monitoring-mtl-gtfs-static-daily", "timezone": "America/Montreal"}'
 
+  STMFilterDailyGTFStaticfilesPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt STMFilterDailyGTFStaticfiles.Arn
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt STMFilterDailyGTFStaticfilesTrigger.Arn
+
+####################### ANALYZE #######################
   STMAnalyzeDailyStopsData:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
@@ -148,6 +160,7 @@ Resources:
             API_URL_STM_VEHICLE: !Ref ApiUrlStmVehicle
             API_KEY_STM: !Ref ApiKeyStm
 
+####################### CREATE DAILY STOPS INFO #######################
   STMCreateDailyStopsInfo:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
@@ -209,6 +222,10 @@ Outputs:
   STMFilterDailyGTFStaticfilesFunctionArn:
     Description: "STM Filter Daily GTFS Static files Lambda Function ARN"
     Value: !GetAtt STMFilterDailyGTFStaticfiles.Arn
+
+  STMFilterDailyGTFStaticfilesTriggerArn:
+    Description: "ARN of the EventBridge Rule for STMFilterDailyGTFStaticfiles"
+    Value: !GetAtt STMFilterDailyGTFStaticfilesTrigger.Arn
 
   STMAnalyzeDailyStopsDataFunctionArn: 
     Description: "STM Analyze Daily Stops Data Lambda Function ARN"
