@@ -130,7 +130,7 @@ Resources:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       Timeout: 840 # Timeout in seconds
-      MemorySize: 2048
+      MemorySize: 9216
       CodeUri: STM_Services/STM_Analyse_Daily_Stops_Data/
       Handler: main.lambda_handler
       Runtime: python3.9
@@ -204,7 +204,81 @@ Resources:
               API_URL_STM_TRIP: !Ref ApiUrlStmTrip
               API_URL_STM_VEHICLE: !Ref ApiUrlStmVehicle
               API_KEY_STM: !Ref ApiKeyStm
-    
+  
+  STMStateMachine:
+  Type: AWS::Serverless::StateMachine
+  Properties:
+    DefinitionSubstitutions:
+      LambdaFunctionArn: !GetAtt STMFetchGTFSVehiclePositions.Arn
+    Definition:
+      StartAt: Fetch_GTFS_Vehicles_1
+      States:
+        Fetch_GTFS_Vehicles_1:
+          Type: Task
+          Resource: arn:aws:states:::lambda:invoke
+          Parameters:
+            FunctionName: !GetAtt STMFetchGTFSVehiclePositions.Arn
+            Payload.$: "$"
+          Next: Wait1
+        Wait1:
+          Type: Wait
+          Seconds: 18
+          Next: Fetch_GTFS_Vehicles_2
+        Fetch_GTFS_Vehicles_2:
+          Type: Task
+          Resource: arn:aws:states:::lambda:invoke
+          Parameters:
+            FunctionName: !GetAtt STMFetchGTFSVehiclePositions.Arn
+            Payload.$: "$"
+          Next: Wait2
+        Wait2:
+          Type: Wait
+          Seconds: 18
+          Next: Fetch_GTFS_Vehicles_3
+        Fetch_GTFS_Vehicles_3:
+          Type: Task
+          Resource: arn:aws:states:::lambda:invoke
+          Parameters:
+            FunctionName: !GetAtt STMFetchGTFSVehiclePositions.Arn
+            Payload.$: "$"
+          End: true
+    Type: EXPRESS
+    #LoggingConfiguration: On ne LOG rien pour le moment. 
+    Role: !GetAtt StateMachineExecutionRole.Arn # IAM role for execution
+
+  StateMachineScheduler:
+    Type: AWS::Events::Rule
+    Properties:
+      ScheduleExpression: "rate(1 minute)"
+      Targets:
+        - Arn: !Ref STMStateMachine
+          Id: "StateMachineSchedule"
+          RoleArn: !GetAtt StateMachineExecutionRole.Arn
+          Input: >
+            {
+              "bucket_name": "monitoring-mtl-stm-gtfs-vehicle-positions",
+              "timezone": "America/Montreal"
+            }
+
+  StateMachineExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: "events.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: "StateMachineExecutionPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action: "states:StartExecution"
+                Resource: !Ref STMStateMachine
+
 Outputs:
 
   STMFetchGTFSTripUpdatesFunctionArn:
