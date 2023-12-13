@@ -57,12 +57,6 @@ Resources:
       Runtime: python3.9
       Architectures:
         - x86_64
-      Events:
-        Start:
-          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
-          Properties:
-            Path: /vehiclePositions
-            Method: get
       Environment:
         Variables:
           API_URL_STM_TRIP: !Ref ApiUrlStmTrip
@@ -159,12 +153,6 @@ Resources:
       Runtime: python3.9
       Architectures:
         - x86_64
-      Events:
-        Start:
-          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
-          Properties:
-            Path: /CreateDailyStopsInfo
-            Method: get
       Environment:
             Variables:
               API_URL_STM_TRIP: !Ref ApiUrlStmTrip
@@ -206,45 +194,44 @@ Resources:
               API_KEY_STM: !Ref ApiKeyStm
   
   STMStateMachine:
-  Type: AWS::Serverless::StateMachine
-  Properties:
-    DefinitionSubstitutions:
-      LambdaFunctionArn: !GetAtt STMFetchGTFSVehiclePositions.Arn
-    Definition:
-      StartAt: Fetch_GTFS_Vehicles_1
-      States:
-        Fetch_GTFS_Vehicles_1:
-          Type: Task
-          Resource: arn:aws:states:::lambda:invoke
-          Parameters:
-            FunctionName: !GetAtt STMFetchGTFSVehiclePositions.Arn
-            Payload.$: "$"
-          Next: Wait1
-        Wait1:
-          Type: Wait
-          Seconds: 18
-          Next: Fetch_GTFS_Vehicles_2
-        Fetch_GTFS_Vehicles_2:
-          Type: Task
-          Resource: arn:aws:states:::lambda:invoke
-          Parameters:
-            FunctionName: !GetAtt STMFetchGTFSVehiclePositions.Arn
-            Payload.$: "$"
-          Next: Wait2
-        Wait2:
-          Type: Wait
-          Seconds: 18
-          Next: Fetch_GTFS_Vehicles_3
-        Fetch_GTFS_Vehicles_3:
-          Type: Task
-          Resource: arn:aws:states:::lambda:invoke
-          Parameters:
-            FunctionName: !GetAtt STMFetchGTFSVehiclePositions.Arn
-            Payload.$: "$"
-          End: true
-    Type: EXPRESS
-    #LoggingConfiguration: On ne LOG rien pour le moment. 
-    Role: !GetAtt StateMachineExecutionRole.Arn # IAM role for execution
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      DefinitionSubstitutions:
+        LambdaFunctionArn: !GetAtt STMFetchGTFSVehiclePositions.Arn
+      Definition:
+        StartAt: Fetch_GTFS_Vehicles_1
+        States:
+          Fetch_GTFS_Vehicles_1:
+            Type: Task
+            Resource: arn:aws:states:::lambda:invoke
+            Parameters:
+              FunctionName: !GetAtt STMFetchGTFSVehiclePositions.Arn
+              Payload.$: "$"
+            Next: Wait1
+          Wait1:
+            Type: Wait
+            Seconds: 18
+            Next: Fetch_GTFS_Vehicles_2
+          Fetch_GTFS_Vehicles_2:
+            Type: Task
+            Resource: arn:aws:states:::lambda:invoke
+            Parameters:
+              FunctionName: !GetAtt STMFetchGTFSVehiclePositions.Arn
+              Payload.$: "$"
+            Next: Wait2
+          Wait2:
+            Type: Wait
+            Seconds: 18
+            Next: Fetch_GTFS_Vehicles_3
+          Fetch_GTFS_Vehicles_3:
+            Type: Task
+            Resource: arn:aws:states:::lambda:invoke
+            Parameters:
+              FunctionName: !GetAtt STMFetchGTFSVehiclePositions.Arn
+              Payload.$: "$"
+            End: true
+      Type: EXPRESS
+      Role: !GetAtt StateMachineExecutionRole.Arn
 
   StateMachineScheduler:
     Type: AWS::Events::Rule
@@ -259,7 +246,7 @@ Resources:
               "bucket_name": "monitoring-mtl-stm-gtfs-vehicle-positions",
               "timezone": "America/Montreal"
             }
-
+            
   StateMachineExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -309,3 +296,6 @@ Outputs:
     Description: "STM Merge Daily GTFS Vehicle Positions files into one single file Lambda Function ARN"
     Value: !GetAtt STMMergeDailyGTFSVechiclePositions.Arn
 
+  StateMachineExecutionRoleFunctionArn:
+    Description: "Execution role for the Step Function for GTFS Vehicle_Positions"
+    Value: !GetAtt StateMachineExecutionRole.Arn
