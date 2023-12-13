@@ -255,7 +255,7 @@ Resources:
         Statement:
           - Effect: "Allow"
             Principal:
-              Service: "events.amazonaws.com"
+              Service: "states.amazonaws.com"
             Action: "sts:AssumeRole"
       Policies:
         - PolicyName: "StateMachineExecutionPolicy"
@@ -263,8 +263,9 @@ Resources:
             Version: "2012-10-17"
             Statement:
               - Effect: "Allow"
-                Action: "states:StartExecution"
-                Resource: !Ref STMStateMachine
+                Action:
+                  - "lambda:InvokeFunction"
+                Resource: !GetAtt STMFetchGTFSVehiclePositions.Arn
 
 Outputs:
 
