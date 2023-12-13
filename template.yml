@@ -85,28 +85,16 @@ Resources:
           API_URL_STM_TRIP: !Ref ApiUrlStmTrip
           API_URL_STM_VEHICLE: !Ref ApiUrlStmVehicle
           API_KEY_STM: !Ref ApiKeyStm
-    
-  STMFetchUpdateGTFSStaticfilesTrigger:
-    Type: AWS::Events::Rule
-    Properties:
-      ScheduleExpression: cron(0 6 * * ? *)
-      State: ENABLED
-      Targets:
-        - Arn: !GetAtt STMFetchUpdateGTFSStaticfiles.Arn
-          Id: "TargetFunction"
-          Input: >-
-            {
+      Events:
+        DailyTrigger:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 7 * * ? *)
+            Input: >-
+              {
               "bucket_name": "monitoring-mtl-gtfs-static",
               "url": "https://www.stm.info/sites/default/files/gtfs/gtfs_stm.zip"
-            }
-          
-  STMFetchUpdateGTFSStaticfilesPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !GetAtt STMFetchUpdateGTFSStaticfiles.Arn
-      Principal: events.amazonaws.com
-      SourceArn: !GetAtt STMFetchUpdateGTFSStaticfilesTrigger.Arn
+              }
 
 ####################### FILTER DAILY GTFS STATIC #######################
   STMFilterDailyGTFStaticfiles:
@@ -182,6 +170,18 @@ Resources:
               API_URL_STM_TRIP: !Ref ApiUrlStmTrip
               API_URL_STM_VEHICLE: !Ref ApiUrlStmVehicle
               API_KEY_STM: !Ref ApiKeyStm
+      Events:
+        DailyTrigger:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 8 10 * ? *)
+            Input: >-
+              {
+                "static_bucket": "monitoring-mtl-gtfs-static",
+                "daily_static_bucket": "monitoring-mtl-gtfs-static-daily",
+                "output_bucket": "monitoring-mtl-gtfs-daily-stops-infos",
+                "timezone": "America/Montreal"
+              }
 
   STMMergeDailyGTFSVechiclePositions:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -219,18 +219,9 @@ Outputs:
     Description: "STM Fetch Update GTFS Static files Lambda Function ARN"
     Value: !GetAtt STMFetchUpdateGTFSStaticfiles.Arn
 
-  STMFetchUpdateGTFSStaticfilesTriggerArn:
-    Description: "ARN of the EventBridge Rule for STMFetchUpdateGTFSStaticfiles"
-    Value: !GetAtt STMFetchUpdateGTFSStaticfilesTrigger.Arn
-
-####### FILTER DAILY GTFS STATIC FILES ########
   STMFilterDailyGTFStaticfilesFunctionArn:
     Description: "STM Filter Daily GTFS Static files Lambda Function ARN"
     Value: !GetAtt STMFilterDailyGTFStaticfiles.Arn
-
-  STMFilterDailyGTFStaticfilesTriggerArn:
-    Description: "ARN of the EventBridge Rule for STMFilterDailyGTFStaticfiles"
-    Value: !GetAtt STMFilterDailyGTFStaticfilesTrigger.Arn
 
   STMAnalyzeDailyStopsDataFunctionArn: 
     Description: "STM Analyze Daily Stops Data Lambda Function ARN"
