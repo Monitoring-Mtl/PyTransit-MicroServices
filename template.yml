@@ -57,6 +57,12 @@ Resources:
       Runtime: python3.9
       Architectures:
         - x86_64
+      Events:
+        Start:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /vehiclePositions
+            Method: get
       Environment:
         Variables:
           API_URL_STM_TRIP: !Ref ApiUrlStmTrip
@@ -79,16 +85,28 @@ Resources:
           API_URL_STM_TRIP: !Ref ApiUrlStmTrip
           API_URL_STM_VEHICLE: !Ref ApiUrlStmVehicle
           API_KEY_STM: !Ref ApiKeyStm
-      Events:
-        DailyTrigger:
-          Type: Schedule
-          Properties:
-            Schedule: cron(0 7 * * ? *)
-            Input: >-
-              {
+    
+  STMFetchUpdateGTFSStaticfilesTrigger:
+    Type: AWS::Events::Rule
+    Properties:
+      ScheduleExpression: cron(0 6 * * ? *)
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt STMFetchUpdateGTFSStaticfiles.Arn
+          Id: "TargetFunction"
+          Input: >-
+            {
               "bucket_name": "monitoring-mtl-gtfs-static",
               "url": "https://www.stm.info/sites/default/files/gtfs/gtfs_stm.zip"
-              }
+            }
+          
+  STMFetchUpdateGTFSStaticfilesPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt STMFetchUpdateGTFSStaticfiles.Arn
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt STMFetchUpdateGTFSStaticfilesTrigger.Arn
 
 ####################### FILTER DAILY GTFS STATIC #######################
   STMFilterDailyGTFStaticfiles:
@@ -106,25 +124,36 @@ Resources:
           API_URL_STM_TRIP: !Ref ApiUrlStmTrip
           API_URL_STM_VEHICLE: !Ref ApiUrlStmVehicle
           API_KEY_STM: !Ref ApiKeyStm
-      Events:
-        DailyTrigger:
-          Type: Schedule
-          Properties:
-            Schedule: cron(0 8 * * ? *)
-            Input: >-
-              {
-                "input_bucket": "monitoring-mtl-gtfs-static",
-                "output_bucket": "monitoring-mtl-gtfs-static-daily",
-                "timezone": "America/Montreal"
-              }
 
+  STMFilterDailyGTFStaticfilesTrigger:
+    Type: AWS::Events::Rule
+    Properties:
+      ScheduleExpression: cron(0 8 * * ? *)
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt STMFilterDailyGTFStaticfiles.Arn
+          Id: "TargetFunction"
+          Input: >-
+            {
+              "input_bucket": "monitoring-mtl-gtfs-static",
+              "output_bucket": "monitoring-mtl-gtfs-static-daily",
+              "timezone": "America/Montreal"
+            }
+          
+  STMFilterDailyGTFStaticfilesPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt STMFilterDailyGTFStaticfiles.Arn
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt STMFilterDailyGTFStaticfilesTrigger.Arn
 
 ####################### ANALYZE #######################
   STMAnalyzeDailyStopsData:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       Timeout: 840 # Timeout in seconds
-      MemorySize: 9216
+      MemorySize: 8192
       CodeUri: STM_Services/STM_Analyse_Daily_Stops_Data/
       Handler: main.lambda_handler
       Runtime: python3.9
@@ -153,23 +182,17 @@ Resources:
       Runtime: python3.9
       Architectures:
         - x86_64
+      Events:
+        Start:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /CreateDailyStopsInfo
+            Method: get
       Environment:
             Variables:
               API_URL_STM_TRIP: !Ref ApiUrlStmTrip
               API_URL_STM_VEHICLE: !Ref ApiUrlStmVehicle
               API_KEY_STM: !Ref ApiKeyStm
-      Events:
-        DailyTrigger:
-          Type: Schedule
-          Properties:
-            Schedule: cron(0 8 10 * ? *)
-            Input: >-
-              {
-                "static_bucket": "monitoring-mtl-gtfs-static",
-                "daily_static_bucket": "monitoring-mtl-gtfs-static-daily",
-                "output_bucket": "monitoring-mtl-gtfs-daily-stops-infos",
-                "timezone": "America/Montreal"
-              }
 
   STMMergeDailyGTFSVechiclePositions:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -192,104 +215,7 @@ Resources:
               API_URL_STM_TRIP: !Ref ApiUrlStmTrip
               API_URL_STM_VEHICLE: !Ref ApiUrlStmVehicle
               API_KEY_STM: !Ref ApiKeyStm
-  
-  STMFetchGTFSVechilePositionsStateMachine:
-    Type: AWS::Serverless::StateMachine
-    Properties:
-      DefinitionSubstitutions:
-        LambdaFunctionArn: !GetAtt STMFetchGTFSVehiclePositions.Arn
-      Definition:
-        StartAt: Fetch_GTFS_Vehicles_1
-        States:
-          Fetch_GTFS_Vehicles_1:
-            Type: Task
-            Resource: arn:aws:states:::lambda:invoke
-            Parameters:
-              FunctionName: !GetAtt STMFetchGTFSVehiclePositions.Arn
-              Payload.$: "$"
-            Next: Wait1
-          Wait1:
-            Type: Wait
-            Seconds: 18
-            Next: Fetch_GTFS_Vehicles_2
-          Fetch_GTFS_Vehicles_2:
-            Type: Task
-            Resource: arn:aws:states:::lambda:invoke
-            Parameters:
-              FunctionName: !GetAtt STMFetchGTFSVehiclePositions.Arn
-              Payload.$: "$"
-            Next: Wait2
-          Wait2:
-            Type: Wait
-            Seconds: 18
-            Next: Fetch_GTFS_Vehicles_3
-          Fetch_GTFS_Vehicles_3:
-            Type: Task
-            Resource: arn:aws:states:::lambda:invoke
-            Parameters:
-              FunctionName: !GetAtt STMFetchGTFSVehiclePositions.Arn
-              Payload.$: "$"
-            End: true
-      Type: EXPRESS
-      Role: !GetAtt StateMachineExecutionRole.Arn
-      LoggingConfiguration:
-        Destinations:
-          - CloudWatchLogsLogGroup:
-              LogGroupArn: !GetAtt StateMachineLogGroup.Arn
-        IncludeExecutionData: true
-        Level: ALL
-
-  StateMachineLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: /aws/vendedlogs/states/STMStateMachineLogGroup
-      RetentionInDays: 30
-
-  StateMachineScheduler:
-    Type: AWS::Events::Rule
-    Properties:
-      ScheduleExpression: "rate(1 minute)"
-      Targets:
-        - Arn: !Ref STMFetchGTFSVechilePositionsStateMachine
-          Id: "StateMachineSchedule"
-          RoleArn: !GetAtt StateMachineExecutionRole.Arn
-          Input: >
-            {
-              "bucket_name": "monitoring-mtl-stm-gtfs-vehicle-positions",
-              "timezone": "America/Montreal"
-            }
-            
-  StateMachineExecutionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: "Allow"
-            Principal:
-              Service: "states.amazonaws.com"
-            Action: "sts:AssumeRole"
-      Policies:
-        - PolicyName: "StateMachineExecutionPolicy"
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: "Allow"
-                Action:
-                  - "lambda:InvokeFunction"
-                Resource: !GetAtt STMFetchGTFSVehiclePositions.Arn
-        - PolicyName: "CloudWatchLogsPolicy"
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: "Allow"
-                Action:
-                  - "logs:CreateLogGroup"
-                  - "logs:CreateLogStream"
-                  - "logs:PutLogEvents"
-                Resource: 
-                  - !GetAtt StateMachineLogGroup.Arn
-
+    
 Outputs:
 
   STMFetchGTFSTripUpdatesFunctionArn:
@@ -304,9 +230,18 @@ Outputs:
     Description: "STM Fetch Update GTFS Static files Lambda Function ARN"
     Value: !GetAtt STMFetchUpdateGTFSStaticfiles.Arn
 
+  STMFetchUpdateGTFSStaticfilesTriggerArn:
+    Description: "ARN of the EventBridge Rule for STMFetchUpdateGTFSStaticfiles"
+    Value: !GetAtt STMFetchUpdateGTFSStaticfilesTrigger.Arn
+
+####### FILTER DAILY GTFS STATIC FILES ########
   STMFilterDailyGTFStaticfilesFunctionArn:
     Description: "STM Filter Daily GTFS Static files Lambda Function ARN"
     Value: !GetAtt STMFilterDailyGTFStaticfiles.Arn
+
+  STMFilterDailyGTFStaticfilesTriggerArn:
+    Description: "ARN of the EventBridge Rule for STMFilterDailyGTFStaticfiles"
+    Value: !GetAtt STMFilterDailyGTFStaticfilesTrigger.Arn
 
   STMAnalyzeDailyStopsDataFunctionArn: 
     Description: "STM Analyze Daily Stops Data Lambda Function ARN"
@@ -319,11 +254,3 @@ Outputs:
   STMMergeDailyGTFSVechiclePositionsFunctionArn:
     Description: "STM Merge Daily GTFS Vehicle Positions files into one single file Lambda Function ARN"
     Value: !GetAtt STMMergeDailyGTFSVechiclePositions.Arn
-
-  StateMachineExecutionRoleFunctionArn:
-    Description: "Execution role for the Step Function for GTFS Vehicle_Positions"
-    Value: !GetAtt StateMachineExecutionRole.Arn
-  
-  StateMachineLogGroupFunctionArn:
-    Description: "Log group function for the STM StateMachine"
-    Value: !GetAtt StateMachineLogGroup.Arn
