@@ -124,29 +124,18 @@ Resources:
           API_URL_STM_TRIP: !Ref ApiUrlStmTrip
           API_URL_STM_VEHICLE: !Ref ApiUrlStmVehicle
           API_KEY_STM: !Ref ApiKeyStm
+      Events:
+        DailyTrigger:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 8 * * ? *)
+            Input: >-
+              {
+                "input_bucket": "monitoring-mtl-gtfs-static",
+                "output_bucket": "monitoring-mtl-gtfs-static-daily",
+                "timezone": "America/Montreal"
+              }
 
-  STMFilterDailyGTFStaticfilesTrigger:
-    Type: AWS::Events::Rule
-    Properties:
-      ScheduleExpression: cron(0 8 * * ? *)
-      State: ENABLED
-      Targets:
-        - Arn: !GetAtt STMFilterDailyGTFStaticfiles.Arn
-          Id: "TargetFunction"
-          Input: >-
-            {
-              "input_bucket": "monitoring-mtl-gtfs-static",
-              "output_bucket": "monitoring-mtl-gtfs-static-daily",
-              "timezone": "America/Montreal"
-            }
-          
-  STMFilterDailyGTFStaticfilesPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !GetAtt STMFilterDailyGTFStaticfiles.Arn
-      Principal: events.amazonaws.com
-      SourceArn: !GetAtt STMFilterDailyGTFStaticfilesTrigger.Arn
 
 ####################### ANALYZE #######################
   STMAnalyzeDailyStopsData:
