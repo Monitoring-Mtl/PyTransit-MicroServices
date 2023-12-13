@@ -193,7 +193,7 @@ Resources:
               API_URL_STM_VEHICLE: !Ref ApiUrlStmVehicle
               API_KEY_STM: !Ref ApiKeyStm
   
-  STMStateMachine:
+  STMFetchGTFSVechilePositionsStateMachine:
     Type: AWS::Serverless::StateMachine
     Properties:
       DefinitionSubstitutions:
@@ -232,13 +232,25 @@ Resources:
             End: true
       Type: EXPRESS
       Role: !GetAtt StateMachineExecutionRole.Arn
+      LoggingConfiguration:
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt StateMachineLogGroup.Arn
+        IncludeExecutionData: true
+        Level: ALL
+
+  StateMachineLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/vendedlogs/states/STMStateMachineLogGroup
+      RetentionInDays: 30
 
   StateMachineScheduler:
     Type: AWS::Events::Rule
     Properties:
       ScheduleExpression: "rate(1 minute)"
       Targets:
-        - Arn: !Ref STMStateMachine
+        - Arn: !Ref STMFetchGTFSVechilePositionsStateMachine
           Id: "StateMachineSchedule"
           RoleArn: !GetAtt StateMachineExecutionRole.Arn
           Input: >
@@ -266,6 +278,17 @@ Resources:
                 Action:
                   - "lambda:InvokeFunction"
                 Resource: !GetAtt STMFetchGTFSVehiclePositions.Arn
+        - PolicyName: "CloudWatchLogsPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: 
+                  - !GetAtt StateMachineLogGroup.Arn
 
 Outputs:
 
@@ -300,3 +323,7 @@ Outputs:
   StateMachineExecutionRoleFunctionArn:
     Description: "Execution role for the Step Function for GTFS Vehicle_Positions"
     Value: !GetAtt StateMachineExecutionRole.Arn
+  
+  StateMachineLogGroupFunctionArn:
+    Description: "Log group function for the STM StateMachine"
+    Value: !GetAtt StateMachineLogGroup.Arn
