@@ -101,18 +101,6 @@ Resources:
       Runtime: python3.9
       Architectures:
         - x86_64
-      Events:
-        DailyTrigger:
-          Type: Schedule
-          Properties:
-            Schedule: cron(0 8 * * ? *)
-            Enabled: true
-            Input: >-
-              {
-                "input_bucket": "monitoring-mtl-gtfs-static",
-                "output_bucket": "monitoring-mtl-gtfs-static-daily",
-                "timezone": "America/Montreal"
-              }
       Environment:
         Variables:
           API_URL_STM_TRIP: !Ref ApiUrlStmTrip
@@ -218,6 +206,7 @@ Outputs:
     Description: "STM Fetch Update GTFS Static files Lambda Function ARN"
     Value: !GetAtt STMFetchUpdateGTFSStaticfiles.Arn
 
+####### FILTER DAILY GTFS STATIC FILES ########
   STMFilterDailyGTFStaticfilesFunctionArn:
     Description: "STM Filter Daily GTFS Static files Lambda Function ARN"
     Value: !GetAtt STMFilterDailyGTFStaticfiles.Arn
