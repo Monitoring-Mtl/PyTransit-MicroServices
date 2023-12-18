@@ -24,7 +24,7 @@
 <div align="center">
 
   <a href="">![GitHub contributors](https://img.shields.io/github/contributors/Monitoring-Mtl/PyTransit-MicroServices?color=green)</a>
-  <a href="">![GitHub last commit (branch)](https://img.shields.io/github/last-commit/Monitoring-Mtl/PyTransit-MicroServices/maim)</a>
+  <a href="">![GitHub last commit (branch)](https://img.shields.io/github/last-commit/Monitoring-Mtl/PyTransit-MicroServices/main)</a>
   <a href="">![GitHub issues](https://img.shields.io/github/issues/Monitoring-Mtl/PyTransit-MicroServices)</a>
   <a href="">![GitHub top language](https://img.shields.io/github/languages/top/Monitoring-Mtl/PyTransit-MicroServices)</a>
 
