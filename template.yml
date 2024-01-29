@@ -69,6 +69,27 @@ Resources:
           API_URL_STM_VEHICLE: !Ref ApiUrlStmVehicle
           API_KEY_STM: !Ref ApiKeyStm
 
+####################### FETCH GBFS STATION_STATUS #######################
+  BIXIFetchGBFSStationStatus:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      Timeout: 15 # Timeout in seconds
+      MemorySize: 256
+      CodeUri: BIXI_Services/BIXI_Fetch_GBFS_Station_Status/
+      Handler: main.lambda_handler
+      Runtime: python3.9
+      Architectures:
+        - x86_64
+      Events:
+        Start:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /stationStatus
+            Method: get
+      #Environment:
+        #Variables:
+          #API_URL_Station: !Ref ApiUrlStation
+
 ####################### FETCH URL STATIC FILES #######################
   STMFetchUpdateGTFSStaticfiles:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -197,7 +218,7 @@ Resources:
   STMMergeDailyGTFSVechiclePositions:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      Timeout: 60 # Timeout in seconds
+      Timeout: 600 # Timeout in seconds
       MemorySize: 4096
       CodeUri: STM_Services/STM_Merge_Daily_GTFS_VehiclePositions/
       Handler: main.lambda_handler

@@ -5,6 +5,7 @@ on:
         branches:
         - main
         paths:
+        - 'BIXI_Services/**'
         - 'STM_Services/**'
     workflow_dispatch:
 
