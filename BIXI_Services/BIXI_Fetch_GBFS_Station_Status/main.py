@@ -8,17 +8,16 @@ from urllib.request import Request, urlopen
 
 # Set the environment variable for the API URL
 #api_url = os.environ.get('API_URL')
-api_url = 'https://gbfs.velobixi.com/gbfs/en/station_status.json'
+#api_url = 'https://gbfs.velobixi.com/gbfs/en/station_status.json'
 
 # Set up S3 client
 s3 = boto3.client('s3')
 
 def lambda_handler(event, context):
-    #bucket_name = event['bucket_name']
-    bucket_name = 'monitoring-mtl-bixi-gtfs-station-status-dev'
-    fetch_and_store_data(bucket_name)
+    bucket_name = event['bucket_name']
+    fetch_and_store_data(bucket_name, event['url'])
 
-def fetch_and_store_data(bucket_name):
+def fetch_and_store_data(bucket_name, api_url):
     eastern = pytz.timezone('America/Toronto')
     now = datetime.now(eastern)
     fetch_time_unix = int(now.timestamp())
@@ -29,6 +28,9 @@ def fetch_and_store_data(bucket_name):
         request = Request(api_url)
         response = urlopen(request)
         data = response.read()
+
+        #AJOUTER TRANSFORMATION À .parquet QUELQUE PART ICI
+        #ON PEUT SE FIER À LEUR FONCTION STM_Fetch_GTFS_VehiclePositions
 
         # Deserialize JSON data
         data_dict = json.loads(data)

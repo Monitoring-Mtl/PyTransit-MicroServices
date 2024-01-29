@@ -80,15 +80,29 @@ Resources:
       Runtime: python3.9
       Architectures:
         - x86_64
-      Events:
-        Start:
-          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
-          Properties:
-            Path: /stationStatus
-            Method: get
-      #Environment:
-        #Variables:
-          #API_URL_Station: !Ref ApiUrlStation
+
+  BIXIFetchUpdateGBFSStationStatusTrigger:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "Fetch Bixi data at every minutes (Same speed as they are generated)"
+      ScheduleExpression: rate(1 minutes)
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt BIXIFetchGBFSStationStatus.Arn
+          Id: "TargetFunction"
+          Input: >-
+            {
+              "bucket_name": "monitoring-mtl-bixi-station-status-dev",
+              "url": "https://gbfs.velobixi.com/gbfs/en/station_status.json"
+            }
+  
+  BIXIFetchUpdateGBFSStationStatusPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt BIXIFetchUpdateGBFSStationStatus.Arn
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt BIXIFetchUpdateGBFSStationStatusTrigger.Arn
 
 ####################### FETCH URL STATIC FILES #######################
   STMFetchUpdateGTFSStaticfiles:
@@ -275,3 +289,12 @@ Outputs:
   STMMergeDailyGTFSVechiclePositionsFunctionArn:
     Description: "STM Merge Daily GTFS Vehicle Positions files into one single file Lambda Function ARN"
     Value: !GetAtt STMMergeDailyGTFSVechiclePositions.Arn
+
+  ####### BIXI functions ########
+  BIXIFetchGBFSStationStatusFunctionArn:
+    Description: "BIXI Fetch Update GBFS Static files Lambda Function ARN"
+    Value: !GetAtt BIXIFetchGBFSStationStatus.Arn
+
+  BIXIFetchGBFSStationStatusTriggerArn:
+    Description: "ARN of the EventBridge Rule for BIXIFetchGBFSStationStatus"
+    Value: !GetAtt BIXIFetchGBFSStationStatusTrigger.Arn
