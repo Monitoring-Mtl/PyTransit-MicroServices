@@ -81,28 +81,28 @@ Resources:
       Architectures:
         - x86_64
 
-  BIXIFetchUpdateGBFSStationStatusTrigger:
+  BIXIFetchGBFSStationStatusTrigger:
     Type: AWS::Events::Rule
     Properties:
-      Description: "Fetch Bixi data at every minutes (Same speed as they are generated)"
-      ScheduleExpression: rate(1 minutes)
+      Description: "Fetch Bixi station status data every minutes (Same speed as they are refreshed)"
+      ScheduleExpression: rate(1 minute)
       State: ENABLED
       Targets:
         - Arn: !GetAtt BIXIFetchGBFSStationStatus.Arn
           Id: "TargetFunction"
           Input: >-
             {
-              "bucket_name": "monitoring-mtl-bixi-station-status-dev",
+              "bucket_name": "monitoring-mtl-bixi-gtfs-station-status-dev",
               "url": "https://gbfs.velobixi.com/gbfs/en/station_status.json"
             }
   
-  BIXIFetchUpdateGBFSStationStatusPermission:
+  BIXIFetchGBFSStationStatusPermission:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !GetAtt BIXIFetchUpdateGBFSStationStatus.Arn
+      FunctionName: !GetAtt BIXIFetchGBFSStationStatus.Arn
       Principal: events.amazonaws.com
-      SourceArn: !GetAtt BIXIFetchUpdateGBFSStationStatusTrigger.Arn
+      SourceArn: !GetAtt BIXIFetchGBFSStationStatusTrigger.Arn
 
 ####################### FETCH URL STATIC FILES #######################
   STMFetchUpdateGTFSStaticfiles:
