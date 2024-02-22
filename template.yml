@@ -15,6 +15,14 @@ Parameters:
   ApiUrlStmVehicle:
     Description: The STM API Vehicle URL
     Type: String
+  UpdateCheck:
+    Description: Checks if each function can be updated
+    Type: CommaDelimitedList
+
+Conditions:
+  SetSTMFetchUpdateGTFSStaticfiles: !Or [!Equals [!Select[0, !Ref UpdateCheck], "1"], !Equals [!Select[0, !Ref UpdateCheck], "null"]]
+  SetBIXIFetchGBFSStationStatus: !Or [!Equals [!Select[5, !Ref UpdateCheck], "1"], !Equals [!Select[5, !Ref UpdateCheck], "null"]]
+  SetSTMFilterDailyGTFStaticfiles: !Or [!Equals [!Select[6, !Ref UpdateCheck], "1"], !Equals [!Select[6, !Ref UpdateCheck], "null"]]
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
@@ -82,6 +90,24 @@ Resources:
       Architectures:
         - x86_64
 
+  BIXIFetchGBFSStationStatusVersion:
+    Condtion: SetBIXIFetchGBFSStationStatus
+    Type: AWS::Lambda::Version
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      FunctionName: !Ref BIXIFetchGBFSStationStatus
+
+  BIXIFetchGBFSStationStatusAlias:
+    Condtion: SetBIXIFetchGBFSStationStatus
+    Type: AWS::Lambda::Version
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      FunctionName: !Ref BIXIFetchGBFSStationStatusVersion
+      FunctionVersion: !GetAtt BIXIFetchGBFSStationStatusVersion.Version
+      Name: Live
+
   BIXIFetchGBFSStationStatusTrigger:
     Type: AWS::Events::Rule
     Properties:
@@ -89,8 +115,7 @@ Resources:
       ScheduleExpression: rate(1 minute)
       State: ENABLED
       Targets:
-        #- Arn: BIXIFetchGBFSStationStatus.Arn
-        - Arn: "arn:aws:lambda:ca-central-1:540243147841:function:py-transit-BIXIFetchGBFSStationStatus-9p32yxsf2Ase:Live"
+        - Arn: !Ref BIXIFetchGBFSStationStatusAlias
           Id: "TargetFunction"
           Input: >-
             {
@@ -102,8 +127,7 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      #FunctionName: !GetAtt BIXIFetchGBFSStationStatus.Arn
-      FunctionName: "arn:aws:lambda:ca-central-1:540243147841:function:py-transit-BIXIFetchGBFSStationStatus-9p32yxsf2Ase:Live"
+      FunctionName: !Ref BIXIFetchGBFSStationStatusAlias
       Principal: events.amazonaws.com
       SourceArn: !GetAtt BIXIFetchGBFSStationStatusTrigger.Arn
 
@@ -123,6 +147,24 @@ Resources:
           API_URL_STM_TRIP: !Ref ApiUrlStmTrip
           API_URL_STM_VEHICLE: !Ref ApiUrlStmVehicle
           API_KEY_STM: !Ref ApiKeyStm
+  
+  STMFetchUpdateGTFSStaticfilesVersion:
+    Condtion: SetSTMFetchUpdateGTFSStaticfiles
+    Type: AWS::Lambda::Version
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      FunctionName: !Ref STMFetchUpdateGTFSStaticfiles
+
+  STMFetchUpdateGTFSStaticfilesAlias:
+    Condtion: SetSTMFetchUpdateGTFSStaticfiles
+    Type: AWS::Lambda::Version
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      FunctionName: !Ref STMFetchUpdateGTFSStaticfilesVersion
+      FunctionVersion: !GetAtt STMFetchUpdateGTFSStaticfilesVersion.Version
+      Name: Live
     
   STMFetchUpdateGTFSStaticfilesTrigger:
     Type: AWS::Events::Rule
@@ -130,8 +172,7 @@ Resources:
       ScheduleExpression: cron(0 6 * * ? *)
       State: ENABLED
       Targets:
-        #- Arn: !GetAtt STMFetchUpdateGTFSStaticfiles.Arn
-        - Arn: "arn:aws:lambda:ca-central-1:540243147841:function:py-transit-STMFetchUpdateGTFSStaticfiles-ZIHANQxsuB4h:Live"
+        - Arn: !Ref STMFetchUpdateGTFSStaticfilesAlias
           Id: "TargetFunction"
           Input: >-
             {
@@ -143,8 +184,7 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      #FunctionName: !GetAtt STMFetchUpdateGTFSStaticfiles.Arn
-      FunctionName: "arn:aws:lambda:ca-central-1:540243147841:function:py-transit-STMFetchUpdateGTFSStaticfiles-ZIHANQxsuB4h:Live"
+      FunctionName: !Ref STMFetchUpdateGTFSStaticfilesAlias
       Principal: events.amazonaws.com
       SourceArn: !GetAtt STMFetchUpdateGTFSStaticfilesTrigger.Arn
 
@@ -165,14 +205,31 @@ Resources:
           API_URL_STM_VEHICLE: !Ref ApiUrlStmVehicle
           API_KEY_STM: !Ref ApiKeyStm
 
+  STMFilterDailyGTFStaticfilesVersion:
+    Condtion: SetSTMFilterDailyGTFStaticfiles
+    Type: AWS::Lambda::Version
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      FunctionName: !Ref STMFilterDailyGTFStaticfiles
+
+  STMFilterDailyGTFStaticfilesAlias:
+    Condtion: SetSTMFilterDailyGTFStaticfiles
+    Type: AWS::Lambda::Version
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      FunctionName: !Ref STMFilterDailyGTFStaticfilesVersion
+      FunctionVersion: !GetAtt STMFilterDailyGTFStaticfilesVersion.Version
+      Name: Live
+
   STMFilterDailyGTFStaticfilesTrigger:
     Type: AWS::Events::Rule
     Properties:
       ScheduleExpression: cron(0 8 * * ? *)
       State: ENABLED
       Targets:
-        #- Arn: !GetAtt STMFilterDailyGTFStaticfiles.Arn
-        - Arn: "arn:aws:lambda:ca-central-1:540243147841:function:py-transit-STMFilterDailyGTFStaticfiles-K6loMTjiMjxu:Live"
+        - Arn: !Ref STMFilterDailyGTFStaticfilesAlias
           Id: "TargetFunction"
           Input: >-
             {
@@ -185,8 +242,7 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      #FunctionName: !GetAtt STMFilterDailyGTFStaticfiles.Arn
-      FunctionName: "arn:aws:lambda:ca-central-1:540243147841:function:py-transit-STMFilterDailyGTFStaticfiles-K6loMTjiMjxu:Live"
+      FunctionName: !Ref STMFilterDailyGTFStaticfilesAlias
       Principal: events.amazonaws.com
       SourceArn: !GetAtt STMFilterDailyGTFStaticfilesTrigger.Arn
 

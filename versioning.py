@@ -3,24 +3,23 @@ import subprocess,json
 #Script that creates a new version of each function that has been modified after a deploy
 #and redirects the alias towards this new version
 def main():
-    functions=json.loads(str(subprocess.check_output("aws lambda list-functions"), "utf-8"))
+    functions_dict={}
+    functions=json.loads(str(subprocess.check_output('aws lambda list-functions --query "sort_by(Functions, &FunctionName)"'), "utf-8"))
     #Iterates through all lambda functions to find their names, version and aliases
-    for x in functions["Functions"]:
+    for x in functions:
         name=x["FunctionName"]
-        alias=json.loads(str(subprocess.check_output(f'aws lambda list-aliases --function-name {name}'), "utf-8"))["Aliases"]
+        alias=json.loads(str(subprocess.check_output(f'aws lambda list-aliases --function-name {name}'), "latin-1"))["Aliases"]
         
         #Assuming we only have one alias per function and some don't (like serverless-api)
         if len(alias)>0:
-            current=alias[0]["FunctionVersion"]
-            #Creates a new version if it detects changes between $LATEST and the last version that was made(Should be the version of the alias)
-            #Returns the same version if no changes have been detected
-            new=json.loads(str(subprocess.check_output(f'aws lambda publish-version --function-name {name}'), "latin-1"))["Version"]
-            
-            #Update alias version if it differs from the new one created
-            if current!=new and name.find("-STMFetchGTFSVehiclePositions-")==-1:
-                subprocess.run(f'aws lambda update-alias --function-name {name} --name {alias[0]["Name"]} --function-version {new}')
-                print(f'{name} alias has been redirected to the latest version available!')
+            new=x["CodeSha256"]
+            current=json.loads(str(subprocess.check_output(f'aws lambda get-function --function-name {alias[0]["AliasArn"]}'), "latin-1"))["Configuration"]["CodeSha256"]
+            #AWS uses the Sha256 code to check if two versions differ so we do the same here
+            if(new==current):
+                functions_dict[name.split("-")[2]]=0
             else:
-                print(f'{name} is already up to date!')
+                functions_dict[name.split("-")[2]]=1
+    with open("functions.json", "w") as outfile:
+        json.dump(functions_dict, outfile)
                 
 main()
