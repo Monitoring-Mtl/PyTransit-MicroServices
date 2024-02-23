@@ -35,7 +35,7 @@ jobs:
             #Install the json file package
             sudo apt-get install jq -y
             
-            python versioning.py
+            python -c 'from versioning import changes; main()' 
 
             # Scripts create JSON file so we assign the results to variables
             BIXI=$(jq -r '.BIXIFetchGBFSStationStatus' functions.json)
