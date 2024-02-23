@@ -5,6 +5,7 @@ on:
         branches:
         - main
         paths:
+        - 'BIXI_Services/**'
         - 'STM_Services/**'
     workflow_dispatch:
 
@@ -29,6 +30,33 @@ jobs:
             aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
             aws-region: ca-central-1  # Change to your preferred AWS region        - 
 
+        - name: Execute Versioning.py and save results
+          run: |
+            #Install the json file package
+            sudo apt-get install jq -y
+            
+            python -c 'from versioning import changes; main()' 
+
+            # Scripts create JSON file so we assign the results to variables
+            BIXI=$(jq -r '.BIXIFetchGBFSStationStatus' functions.json)
+            STMAnalyzeDailyStop=$(jq -r '.STMAnalyzeDailyStopsData' functions.json)
+            STMCreateDailyStop=$(jq -r '.STMCreateDailyStopsInfo' functions.json)
+            STMFetchTripUpdates=$(jq -r '.STMFetchGTFSTripUpdates' functions.json)
+            STMFetchVehiclePositions=$(jq -r '.STMFetchGTFSVehiclePositions' functions.json)
+            STMFetchUpdateStatic=$(jq -r '.STMFetchUpdateGTFSStaticfiles' functions.json)
+            STMFilterDailyStatic=$(jq -r '.STMFilterDailyGTFStaticfiles' functions.json)
+            STMMergeDailyVehiclePosition=$(jq -r '.STMMergeDailyGTFSVechiclePositions' functions.json)
+
+            #Set environment variables
+            echo "BIXI=$BIXI" >> $GITHUB_ENV
+            echo "STMAnalyzeDailyStop=$STMAnalyzeDailyStop" >> $GITHUB_ENV
+            echo "STMCreateDailyStop=$STMCreateDailyStop" >> $GITHUB_ENV
+            echo "STMFetchTripUpdates=$STMFetchTripUpdates" >> $GITHUB_ENV
+            echo "STMFetchVehiclePositions=$STMFetchVehiclePositions" >> $GITHUB_ENV
+            echo "STMFetchUpdateStatic=$STMFetchUpdateStatic" >> $GITHUB_ENV
+            echo "STMFilterDailyStatic=$STMFilterDailyStatic" >> $GITHUB_ENV
+            echo "STMMergeDailyVehiclePosition=$STMMergeDailyVehiclePosition" >> $GITHUB_ENV
+
         - name: Build and Deploy to AWS
           env:
             API_KEY_STM: ${{ secrets.API_KEY_STM }}
@@ -36,4 +64,8 @@ jobs:
             API_URL_STM_VEHICLE: ${{ secrets.API_URL_STM_VEHICLE}}
           run: |
             sam build
-            sam deploy --parameter-overrides ApiUrlStmTrip=$API_URL_STM_TRIP ApiKey=$API_KEY_STM ApiUrlStmVehicle=$API_URL_STM_VEHICLE
+            sam deploy --parameter-overrides ApiUrlStmTrip=$API_URL_STM_TRIP ApiKey=$API_KEY_STM ApiUrlStmVehicle=$API_URL_STM_VEHICLE UpdateCheck="[${BIXI},${STMAnalyzeDailyStop},${STMCreateDailyStop},${STMFetchTripUpdates},${STMFetchVehiclePositions},${STMFetchUpdateStatic},${STMFilterDailyStatic},${STMMergeDailyVehiclePosition}]"
+        
+        - name: Delete JSON File
+          run: |
+            rm functions.json
