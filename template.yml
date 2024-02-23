@@ -361,3 +361,4 @@ Outputs:
   BIXIFetchGBFSStationStatusTriggerArn:
     Description: "ARN of the EventBridge Rule for BIXIFetchGBFSStationStatus"
     Value: !GetAtt BIXIFetchGBFSStationStatusTrigger.Arn
+    
