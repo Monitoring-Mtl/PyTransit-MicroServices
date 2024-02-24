@@ -20,9 +20,14 @@ Parameters:
     Type: CommaDelimitedList
 
 Conditions:
-  SetSTMFetchUpdateGTFSStaticfiles: !Or [!Equals [!Select[0, !Ref UpdateCheck], "1"], !Equals [!Select[0, !Ref UpdateCheck], "null"]]
-  SetBIXIFetchGBFSStationStatus: !Or [!Equals [!Select[5, !Ref UpdateCheck], "1"], !Equals [!Select[5, !Ref UpdateCheck], "null"]]
-  SetSTMFilterDailyGTFStaticfiles: !Or [!Equals [!Select[6, !Ref UpdateCheck], "1"], !Equals [!Select[6, !Ref UpdateCheck], "null"]]
+  SetBIXIFetchGBFSStationStatus: !Or [!Equals [!Select [0, !Ref UpdateCheck], "1"], !Equals [!Select [0, !Ref UpdateCheck], "null"]]
+  SetSTMAnalyzeDailyStopsData: !Or [!Equals [!Select [1, !Ref UpdateCheck], "1"], !Equals [!Select [1, !Ref UpdateCheck], "null"]]
+  SetSTMCreateDailyStopsInfo: !Or [!Equals [!Select [2, !Ref UpdateCheck], "1"], !Equals [!Select [2, !Ref UpdateCheck], "null"]]
+  SetSTMFetchGTFSTripUpdates: !Or [!Equals [!Select [3, !Ref UpdateCheck], "1"], !Equals [!Select [3, !Ref UpdateCheck], "null"]]
+  SetSTMFetchGTFSVehiclePositions: !Or [!Equals [!Select [4, !Ref UpdateCheck], "1"], !Equals [!Select [4, !Ref UpdateCheck], "null"]]
+  SetSTMFetchUpdateGTFSStaticfiles: !Or [!Equals [!Select [5, !Ref UpdateCheck], "1"], !Equals [!Select [5, !Ref UpdateCheck], "null"]]
+  SetSTMFilterDailyGTFStaticfiles: !Or [!Equals [!Select [6, !Ref UpdateCheck], "1"], !Equals [!Select [6, !Ref UpdateCheck], "null"]]
+  SetSTMMergeDailyGTFSVechiclePositions: !Or [!Equals [!Select [7, !Ref UpdateCheck], "1"], !Equals [!Select [7, !Ref UpdateCheck], "null"]]
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
@@ -315,6 +320,38 @@ Resources:
               API_KEY_STM: !Ref ApiKeyStm
     
 Outputs:
+
+  BIXIFetchGBFSStationStatusUpdateStatus:
+    Description: "Has BIXIFetchGBFSStationStatus been updated?"
+    Value: !If [SetBIXIFetchGBFSStationStatus, !Join ["" ["Yes. It is now version: ",!GetAtt BIXIFetchGBFSStationStatusVersion.Version]], "No"]
+
+  STMAnalyzeDailyStopsDataUpdateStatus:
+    Description: "Has STMAnalyzeDailyStopsData been updated?"
+    Value: !If [SetSTMAnalyzeDailyStopsData, "Yes", "No"]
+
+  STMCreateDailyStopsInfoUpdateStatus:
+    Description: "Has STMCreateDailyStopsInfo been updated?"
+    Value: !If [SetSTMCreateDailyStopsInfo, "Yes", "No"]
+
+  STMFetchGTFSTripUpdatesUpdateStatus:
+    Description: "Has STMFetchGTFSTripUpdates been updated?"
+    Value: !If [SetSTMFetchGTFSTripUpdates, "Yes", "No"]
+  
+  STMFetchGTFSVehiclePositionsUpdateStatus:
+    Description: "Has STMFetchGTFSVehiclePositions been updated?"
+    Value: !If [SetSTMFetchGTFSVehiclePositions, "Yes", "No"]
+
+  STMFetchUpdateGTFSStaticfilesUpdateStatus:
+    Description: "Has STMFetchUpdateGTFSStaticfiles been updated?"
+    Value: !If [SetSTMFetchUpdateGTFSStaticfiles, !Join ["" ["Yes. It is now version: ",!GetAtt STMFetchUpdateGTFSStaticfilesVersion.Version]], "No"]
+
+  STMFilterDailyGTFStaticfilesStatus:
+    Description: "Has STMFilterDailyGTFStaticfiles been updated?"
+    Value: !If [SetSTMFilterDailyGTFStaticfiles, !Join [" " ["Yes. It is now version:",!GetAtt STMFilterDailyGTFStaticfilesVersion.Version]], "No"]
+
+  STMMergeDailyGTFSVechiclePositionsUpdateStatus:
+    Description: "Has STMMergeDailyGTFSVechiclePositions been updated?"
+    Value: !If [SetSTMMergeDailyGTFSVechiclePositions, "Yes", "No"]
 
   STMFetchGTFSTripUpdatesFunctionArn:
     Description: "STM Fetch GTFS Trip Updates Lambda Function ARN"
