@@ -30,3 +30,4 @@ def main():
                 
     with open("functions.json", "w") as outfile:
         dump(functions_dict, outfile)
+        
