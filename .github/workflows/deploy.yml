@@ -4,7 +4,6 @@ on:
     push:
         branches:
         - main
-        - Bixi
         paths:
         - 'BIXI_Services/**'
         - 'STM_Services/**'
