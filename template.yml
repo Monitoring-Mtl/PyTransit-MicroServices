@@ -18,6 +18,9 @@ Parameters:
   UpdateCheck:
     Description: Checks if each function can be updated
     Type: CommaDelimitedList
+    AllowedValues:
+      - "1"
+      - "0"
 
 Conditions:
   SetBIXIFetchGBFSStationStatus: !Or [!Equals [!Select [0, !Ref UpdateCheck], "1"], !Equals [!Select [0, !Ref UpdateCheck], "null"]]
@@ -120,7 +123,7 @@ Resources:
       ScheduleExpression: rate(1 minute)
       State: ENABLED
       Targets:
-        - Arn: !Ref BIXIFetchGBFSStationStatusAlias
+        - Arn: !If [SetBIXIFetchGBFSStationStatus, !Ref BIXIFetchGBFSStationStatusAlias, !Join [":", [!GetAtt BIXIFetchGBFSStationStatus.Arn,"Live"]]]
           Id: "TargetFunction"
           Input: >-
             {
@@ -177,7 +180,7 @@ Resources:
       ScheduleExpression: cron(0 6 * * ? *)
       State: ENABLED
       Targets:
-        - Arn: !Ref STMFetchUpdateGTFSStaticfilesAlias
+        - Arn: !If [SetSTMFetchUpdateGTFSStaticfiles, !Ref STMFetchUpdateGTFSStaticfilesAlias, !Join [":", [!GetAtt STMFetchUpdateGTFSStaticfiles.Arn,"Live"]]]
           Id: "TargetFunction"
           Input: >-
             {
@@ -234,7 +237,7 @@ Resources:
       ScheduleExpression: cron(0 8 * * ? *)
       State: ENABLED
       Targets:
-        - Arn: !Ref STMFilterDailyGTFStaticfilesAlias
+        - Arn: !If [SetSTMFilterDailyGTFStaticfiles, !Ref STMFilterDailyGTFStaticfilesAlias, !Join [":", [!GetAtt STMFilterDailyGTFStaticfiles.Arn,"Live"]]]
           Id: "TargetFunction"
           Input: >-
             {

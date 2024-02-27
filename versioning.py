@@ -25,8 +25,7 @@ def main():
                 except CalledProcessError as e:
                     functions_dict[name.split("-")[2]]=0
                     #Save error to log
-                    with open('delete_alias_log.txt', 'a') as log:
-                        log.write(f'There was an error with deleting the alias of {name}.\n{e}\n\n')
+                    print(f'There was an error with deleting the alias of {name}.\n{e}\n\n')
                 
     with open("functions.json", "w") as outfile:
         dump(functions_dict, outfile)
