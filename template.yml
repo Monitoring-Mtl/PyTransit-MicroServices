@@ -105,11 +105,11 @@ Resources:
 
   BIXIFetchGBFSStationStatusAlias:
     Condition: SetBIXIFetchGBFSStationStatus
-    Type: AWS::Lambda::Version
+    Type: AWS::Lambda::Alias
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      FunctionName: !Ref BIXIFetchGBFSStationStatusVersion
+      FunctionName: !Ref BIXIFetchGBFSStationStatus
       FunctionVersion: !GetAtt BIXIFetchGBFSStationStatusVersion.Version
       Name: Live
 
@@ -132,7 +132,7 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref BIXIFetchGBFSStationStatusAlias
+      FunctionName: !Ref BIXIFetchGBFSStationStatus
       Principal: events.amazonaws.com
       SourceArn: !GetAtt BIXIFetchGBFSStationStatusTrigger.Arn
 
@@ -163,11 +163,11 @@ Resources:
 
   STMFetchUpdateGTFSStaticfilesAlias:
     Condition: SetSTMFetchUpdateGTFSStaticfiles
-    Type: AWS::Lambda::Version
+    Type: AWS::Lambda::Alias
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      FunctionName: !Ref STMFetchUpdateGTFSStaticfilesVersion
+      FunctionName: !Ref STMFetchUpdateGTFSStaticfiles
       FunctionVersion: !GetAtt STMFetchUpdateGTFSStaticfilesVersion.Version
       Name: Live
     
@@ -189,7 +189,7 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref STMFetchUpdateGTFSStaticfilesAlias
+      FunctionName: !Ref STMFetchUpdateGTFSStaticfiles
       Principal: events.amazonaws.com
       SourceArn: !GetAtt STMFetchUpdateGTFSStaticfilesTrigger.Arn
 
@@ -220,11 +220,11 @@ Resources:
 
   STMFilterDailyGTFStaticfilesAlias:
     Condition: SetSTMFilterDailyGTFStaticfiles
-    Type: AWS::Lambda::Version
+    Type: AWS::Lambda::Alias
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      FunctionName: !Ref STMFilterDailyGTFStaticfilesVersion
+      FunctionName: !Ref STMFilterDailyGTFStaticfiles
       FunctionVersion: !GetAtt STMFilterDailyGTFStaticfilesVersion.Version
       Name: Live
 
@@ -247,7 +247,7 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref STMFilterDailyGTFStaticfilesAlias
+      FunctionName: !Ref STMFilterDailyGTFStaticfiles
       Principal: events.amazonaws.com
       SourceArn: !GetAtt STMFilterDailyGTFStaticfilesTrigger.Arn
 
