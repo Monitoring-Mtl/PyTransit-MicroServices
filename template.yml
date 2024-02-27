@@ -96,7 +96,7 @@ Resources:
         - x86_64
 
   BIXIFetchGBFSStationStatusVersion:
-    Condtion: SetBIXIFetchGBFSStationStatus
+    Condition: SetBIXIFetchGBFSStationStatus
     Type: AWS::Lambda::Version
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
@@ -104,7 +104,7 @@ Resources:
       FunctionName: !Ref BIXIFetchGBFSStationStatus
 
   BIXIFetchGBFSStationStatusAlias:
-    Condtion: SetBIXIFetchGBFSStationStatus
+    Condition: SetBIXIFetchGBFSStationStatus
     Type: AWS::Lambda::Version
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
@@ -154,7 +154,7 @@ Resources:
           API_KEY_STM: !Ref ApiKeyStm
   
   STMFetchUpdateGTFSStaticfilesVersion:
-    Condtion: SetSTMFetchUpdateGTFSStaticfiles
+    Condition: SetSTMFetchUpdateGTFSStaticfiles
     Type: AWS::Lambda::Version
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
@@ -162,7 +162,7 @@ Resources:
       FunctionName: !Ref STMFetchUpdateGTFSStaticfiles
 
   STMFetchUpdateGTFSStaticfilesAlias:
-    Condtion: SetSTMFetchUpdateGTFSStaticfiles
+    Condition: SetSTMFetchUpdateGTFSStaticfiles
     Type: AWS::Lambda::Version
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
@@ -211,7 +211,7 @@ Resources:
           API_KEY_STM: !Ref ApiKeyStm
 
   STMFilterDailyGTFStaticfilesVersion:
-    Condtion: SetSTMFilterDailyGTFStaticfiles
+    Condition: SetSTMFilterDailyGTFStaticfiles
     Type: AWS::Lambda::Version
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
@@ -219,7 +219,7 @@ Resources:
       FunctionName: !Ref STMFilterDailyGTFStaticfiles
 
   STMFilterDailyGTFStaticfilesAlias:
-    Condtion: SetSTMFilterDailyGTFStaticfiles
+    Condition: SetSTMFilterDailyGTFStaticfiles
     Type: AWS::Lambda::Version
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain

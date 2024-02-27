@@ -20,7 +20,7 @@ def main():
                 functions_dict[name.split("-")[2]]=0
             else:
                 try:
-                    call(f'aws lambda delete-alias --name {alias} --function-name {name}', shell=True)
+                    call(f'aws lambda delete-alias --name {alias[0]["Name"]} --function-name {name}', shell=True)
                     functions_dict[name.split("-")[2]]=1
                 except CalledProcessError as e:
                     functions_dict[name.split("-")[2]]=0
