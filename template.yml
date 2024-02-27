@@ -21,17 +21,17 @@ Parameters:
     AllowedValues:
       - "1"
       - "0"
-      - "null"
+      - ""
 
 Conditions:
-  SetBIXIFetchGBFSStationStatus: !Or [!Equals [!Select [0, !Ref UpdateCheck], "1"], !Equals [!Select [0, !Ref UpdateCheck], "null"]]
-  SetSTMAnalyzeDailyStopsData: !Or [!Equals [!Select [1, !Ref UpdateCheck], "1"], !Equals [!Select [1, !Ref UpdateCheck], "null"]]
-  SetSTMCreateDailyStopsInfo: !Or [!Equals [!Select [2, !Ref UpdateCheck], "1"], !Equals [!Select [2, !Ref UpdateCheck], "null"]]
-  SetSTMFetchGTFSTripUpdates: !Or [!Equals [!Select [3, !Ref UpdateCheck], "1"], !Equals [!Select [3, !Ref UpdateCheck], "null"]]
-  SetSTMFetchGTFSVehiclePositions: !Or [!Equals [!Select [4, !Ref UpdateCheck], "1"], !Equals [!Select [4, !Ref UpdateCheck], "null"]]
-  SetSTMFetchUpdateGTFSStaticfiles: !Or [!Equals [!Select [5, !Ref UpdateCheck], "1"], !Equals [!Select [5, !Ref UpdateCheck], "null"]]
-  SetSTMFilterDailyGTFStaticfiles: !Or [!Equals [!Select [6, !Ref UpdateCheck], "1"], !Equals [!Select [6, !Ref UpdateCheck], "null"]]
-  SetSTMMergeDailyGTFSVechiclePositions: !Or [!Equals [!Select [7, !Ref UpdateCheck], "1"], !Equals [!Select [7, !Ref UpdateCheck], "null"]]
+  SetBIXIFetchGBFSStationStatus: !Or [!Equals [!Select [0, !Ref UpdateCheck], "1"], !Equals [!Select [0, !Ref UpdateCheck], ""]]
+  SetSTMAnalyzeDailyStopsData: !Or [!Equals [!Select [1, !Ref UpdateCheck], "1"], !Equals [!Select [1, !Ref UpdateCheck], ""]]
+  SetSTMCreateDailyStopsInfo: !Or [!Equals [!Select [2, !Ref UpdateCheck], "1"], !Equals [!Select [2, !Ref UpdateCheck], ""]]
+  SetSTMFetchGTFSTripUpdates: !Or [!Equals [!Select [3, !Ref UpdateCheck], "1"], !Equals [!Select [3, !Ref UpdateCheck], ""]]
+  SetSTMFetchGTFSVehiclePositions: !Or [!Equals [!Select [4, !Ref UpdateCheck], "1"], !Equals [!Select [4, !Ref UpdateCheck], ""]]
+  SetSTMFetchUpdateGTFSStaticfiles: !Or [!Equals [!Select [5, !Ref UpdateCheck], "1"], !Equals [!Select [5, !Ref UpdateCheck], ""]]
+  SetSTMFilterDailyGTFStaticfiles: !Or [!Equals [!Select [6, !Ref UpdateCheck], "1"], !Equals [!Select [6, !Ref UpdateCheck], ""]]
+  SetSTMMergeDailyGTFSVechiclePositions: !Or [!Equals [!Select [7, !Ref UpdateCheck], "1"], !Equals [!Select [7, !Ref UpdateCheck], ""]]
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
