@@ -21,6 +21,7 @@ Parameters:
     AllowedValues:
       - "1"
       - "0"
+      - "null"
 
 Conditions:
   SetBIXIFetchGBFSStationStatus: !Or [!Equals [!Select [0, !Ref UpdateCheck], "1"], !Equals [!Select [0, !Ref UpdateCheck], "null"]]
