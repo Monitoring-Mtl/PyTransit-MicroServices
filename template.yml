@@ -323,7 +323,7 @@ Outputs:
 
   BIXIFetchGBFSStationStatusUpdateStatus:
     Description: "Has BIXIFetchGBFSStationStatus been updated?"
-    Value: !If [SetBIXIFetchGBFSStationStatus, !Join ["" ["Yes. It is now version: ",!GetAtt BIXIFetchGBFSStationStatusVersion.Version]], "No"]
+    Value: !If [SetBIXIFetchGBFSStationStatus, !Join [" ", ["Yes. It is now version:",!GetAtt BIXIFetchGBFSStationStatusVersion.Version]], "No"]
 
   STMAnalyzeDailyStopsDataUpdateStatus:
     Description: "Has STMAnalyzeDailyStopsData been updated?"
@@ -343,11 +343,11 @@ Outputs:
 
   STMFetchUpdateGTFSStaticfilesUpdateStatus:
     Description: "Has STMFetchUpdateGTFSStaticfiles been updated?"
-    Value: !If [SetSTMFetchUpdateGTFSStaticfiles, !Join ["" ["Yes. It is now version: ",!GetAtt STMFetchUpdateGTFSStaticfilesVersion.Version]], "No"]
+    Value: !If [SetSTMFetchUpdateGTFSStaticfiles, !Join [" ", ["Yes. It is now version:",!GetAtt STMFetchUpdateGTFSStaticfilesVersion.Version]], "No"]
 
   STMFilterDailyGTFStaticfilesStatus:
     Description: "Has STMFilterDailyGTFStaticfiles been updated?"
-    Value: !If [SetSTMFilterDailyGTFStaticfiles, !Join [" " ["Yes. It is now version:",!GetAtt STMFilterDailyGTFStaticfilesVersion.Version]], "No"]
+    Value: !If [SetSTMFilterDailyGTFStaticfiles, !Join [" ", ["Yes. It is now version:",!GetAtt STMFilterDailyGTFStaticfilesVersion.Version]], "No"]
 
   STMMergeDailyGTFSVechiclePositionsUpdateStatus:
     Description: "Has STMMergeDailyGTFSVechiclePositions been updated?"
