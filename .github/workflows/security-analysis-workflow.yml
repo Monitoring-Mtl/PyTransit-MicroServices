@@ -1,0 +1,70 @@
+name: Security and code analysis
+
+on:
+  workflow_call:
+    inputs:
+      deploy:
+        description: 'Deploy to GitHub Pages (true/false)'
+        required: false
+        default: 'false'
+        type: string
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+
+      - name: Install NPM dependencies
+        run: npm install
+
+      - name: Run npm audit
+        run: npm audit --json > audit_results.json || true
+      
+      - name: Check for Vulnerabilities
+        run: |
+          vulnerabilities=$(cat audit_results.json)
+          echo "Full audit results:"
+          echo "$vulnerabilities"
+          if [ "$(jq '.metadata.vulnerabilities.total' audit_results.json)" = "0" ]; then
+            echo "No vulnerabilities found."
+          else
+            echo "Vulnerabilities found. Failing the check."
+            exit 1
+          fi
+
+  code_analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v1
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v1
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v1
+        with:
+          output: codeql-results
+    
+  deployment:
+    if: ${{ inputs.deploy == 'true' }}
+    needs: [security, code_analysis]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Upload SARIF file
+        uses: actions/upload-artifact@v3
+        with:
+          name: codeql-results
+          path: codeql-results/**/*.sarif
