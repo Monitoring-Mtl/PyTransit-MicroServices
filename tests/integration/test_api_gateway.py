@@ -12,7 +12,6 @@ Make sure env variable AWS_SAM_STACK_NAME exists with the name of the stack we a
 class TestApiGateway:
 
     @pytest.mark.skip(reason="This test is currently being skipped due to workflow configurations")
-    @pytest.fixture()
     def api_gateway_url(self):
         """ Get the API Gateway URL from Cloudformation Stack outputs """
         stack_name = os.environ.get("AWS_SAM_STACK_NAME")
