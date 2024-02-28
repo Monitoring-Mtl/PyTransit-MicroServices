@@ -37,6 +37,7 @@ class TestApiGateway:
 
         return api_outputs[0]["OutputValue"]  # Extract url from stack outputs
 
+    @pytest.mark.skip(reason="This test is currently being skipped due to workflow configurations")
     def test_api_gateway(self, api_gateway_url):
         """ Call the API Gateway endpoint and check the response """
         response = requests.get(api_gateway_url)
