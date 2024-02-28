@@ -18,11 +18,20 @@ Parameters:
   UpdateCheck:
     Description: Checks if each function can be updated
     Type: CommaDelimitedList
+    #AllowedValues:
+    #  - "1"
+    #  - "0"
+    #  - ""
 
 Conditions:
-  SetSTMFetchUpdateGTFSStaticfiles: !Or [!Equals [!Select[0, !Ref UpdateCheck], "1"], !Equals [!Select[0, !Ref UpdateCheck], "null"]]
-  SetBIXIFetchGBFSStationStatus: !Or [!Equals [!Select[5, !Ref UpdateCheck], "1"], !Equals [!Select[5, !Ref UpdateCheck], "null"]]
-  SetSTMFilterDailyGTFStaticfiles: !Or [!Equals [!Select[6, !Ref UpdateCheck], "1"], !Equals [!Select[6, !Ref UpdateCheck], "null"]]
+  SetBIXIFetchGBFSStationStatus: !Not [!Equals [!Select [0, !Ref UpdateCheck], "0"]]
+  SetSTMAnalyzeDailyStopsData: !Not [!Equals [!Select [1, !Ref UpdateCheck], "0"]]
+  SetSTMCreateDailyStopsInfo: !Not [!Equals [!Select [2, !Ref UpdateCheck], "0"]]
+  SetSTMFetchGTFSTripUpdates: !Not [!Equals [!Select [3, !Ref UpdateCheck], "0"]]
+  SetSTMFetchGTFSVehiclePositions: !Not [!Equals [!Select [4, !Ref UpdateCheck], "0"]]
+  SetSTMFetchUpdateGTFSStaticfiles: !Not [!Equals [!Select [5, !Ref UpdateCheck], "0"]]
+  SetSTMFilterDailyGTFStaticfiles: !Not [!Equals [!Select [6, !Ref UpdateCheck], "0"]]
+  SetSTMMergeDailyGTFSVechiclePositions: !Not [!Equals [!Select [7, !Ref UpdateCheck], "0"]]
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
@@ -91,7 +100,7 @@ Resources:
         - x86_64
 
   BIXIFetchGBFSStationStatusVersion:
-    Condtion: SetBIXIFetchGBFSStationStatus
+    Condition: SetBIXIFetchGBFSStationStatus
     Type: AWS::Lambda::Version
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
@@ -99,12 +108,12 @@ Resources:
       FunctionName: !Ref BIXIFetchGBFSStationStatus
 
   BIXIFetchGBFSStationStatusAlias:
-    Condtion: SetBIXIFetchGBFSStationStatus
-    Type: AWS::Lambda::Version
+    Condition: SetBIXIFetchGBFSStationStatus
+    Type: AWS::Lambda::Alias
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      FunctionName: !Ref BIXIFetchGBFSStationStatusVersion
+      FunctionName: !Ref BIXIFetchGBFSStationStatus
       FunctionVersion: !GetAtt BIXIFetchGBFSStationStatusVersion.Version
       Name: Live
 
@@ -115,7 +124,7 @@ Resources:
       ScheduleExpression: rate(1 minute)
       State: ENABLED
       Targets:
-        - Arn: !Ref BIXIFetchGBFSStationStatusAlias
+        - Arn: !If [SetBIXIFetchGBFSStationStatus, !Ref BIXIFetchGBFSStationStatusAlias, !Join [":", [!GetAtt BIXIFetchGBFSStationStatus.Arn,"Live"]]]
           Id: "TargetFunction"
           Input: >-
             {
@@ -127,7 +136,7 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref BIXIFetchGBFSStationStatusAlias
+      FunctionName: !Ref BIXIFetchGBFSStationStatus
       Principal: events.amazonaws.com
       SourceArn: !GetAtt BIXIFetchGBFSStationStatusTrigger.Arn
 
@@ -149,7 +158,7 @@ Resources:
           API_KEY_STM: !Ref ApiKeyStm
   
   STMFetchUpdateGTFSStaticfilesVersion:
-    Condtion: SetSTMFetchUpdateGTFSStaticfiles
+    Condition: SetSTMFetchUpdateGTFSStaticfiles
     Type: AWS::Lambda::Version
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
@@ -157,12 +166,12 @@ Resources:
       FunctionName: !Ref STMFetchUpdateGTFSStaticfiles
 
   STMFetchUpdateGTFSStaticfilesAlias:
-    Condtion: SetSTMFetchUpdateGTFSStaticfiles
-    Type: AWS::Lambda::Version
+    Condition: SetSTMFetchUpdateGTFSStaticfiles
+    Type: AWS::Lambda::Alias
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      FunctionName: !Ref STMFetchUpdateGTFSStaticfilesVersion
+      FunctionName: !Ref STMFetchUpdateGTFSStaticfiles
       FunctionVersion: !GetAtt STMFetchUpdateGTFSStaticfilesVersion.Version
       Name: Live
     
@@ -172,7 +181,7 @@ Resources:
       ScheduleExpression: cron(0 6 * * ? *)
       State: ENABLED
       Targets:
-        - Arn: !Ref STMFetchUpdateGTFSStaticfilesAlias
+        - Arn: !If [SetSTMFetchUpdateGTFSStaticfiles, !Ref STMFetchUpdateGTFSStaticfilesAlias, !Join [":", [!GetAtt STMFetchUpdateGTFSStaticfiles.Arn,"Live"]]]
           Id: "TargetFunction"
           Input: >-
             {
@@ -184,7 +193,7 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref STMFetchUpdateGTFSStaticfilesAlias
+      FunctionName: !Ref STMFetchUpdateGTFSStaticfiles
       Principal: events.amazonaws.com
       SourceArn: !GetAtt STMFetchUpdateGTFSStaticfilesTrigger.Arn
 
@@ -206,7 +215,7 @@ Resources:
           API_KEY_STM: !Ref ApiKeyStm
 
   STMFilterDailyGTFStaticfilesVersion:
-    Condtion: SetSTMFilterDailyGTFStaticfiles
+    Condition: SetSTMFilterDailyGTFStaticfiles
     Type: AWS::Lambda::Version
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
@@ -214,12 +223,12 @@ Resources:
       FunctionName: !Ref STMFilterDailyGTFStaticfiles
 
   STMFilterDailyGTFStaticfilesAlias:
-    Condtion: SetSTMFilterDailyGTFStaticfiles
-    Type: AWS::Lambda::Version
+    Condition: SetSTMFilterDailyGTFStaticfiles
+    Type: AWS::Lambda::Alias
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      FunctionName: !Ref STMFilterDailyGTFStaticfilesVersion
+      FunctionName: !Ref STMFilterDailyGTFStaticfiles
       FunctionVersion: !GetAtt STMFilterDailyGTFStaticfilesVersion.Version
       Name: Live
 
@@ -229,7 +238,7 @@ Resources:
       ScheduleExpression: cron(0 8 * * ? *)
       State: ENABLED
       Targets:
-        - Arn: !Ref STMFilterDailyGTFStaticfilesAlias
+        - Arn: !If [SetSTMFilterDailyGTFStaticfiles, !Ref STMFilterDailyGTFStaticfilesAlias, !Join [":", [!GetAtt STMFilterDailyGTFStaticfiles.Arn,"Live"]]]
           Id: "TargetFunction"
           Input: >-
             {
@@ -242,7 +251,7 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref STMFilterDailyGTFStaticfilesAlias
+      FunctionName: !Ref STMFilterDailyGTFStaticfiles
       Principal: events.amazonaws.com
       SourceArn: !GetAtt STMFilterDailyGTFStaticfilesTrigger.Arn
 
@@ -316,49 +325,35 @@ Resources:
     
 Outputs:
 
-  STMFetchGTFSTripUpdatesFunctionArn:
-    Description: "STM Fetch GTFS Trip Updates Lambda Function ARN"
-    Value: !GetAtt STMFetchGTFSTripUpdates.Arn
+  BIXIFetchGBFSStationStatusUpdateStatus:
+    Description: "Has BIXIFetchGBFSStationStatus been updated?"
+    Value: !If [SetBIXIFetchGBFSStationStatus, !Join [" ", ["Yes. It is now version:",!GetAtt BIXIFetchGBFSStationStatusVersion.Version]], "No"]
 
-  STMFetchGTFSVehiclePositionsFunctionArn:
-    Description: "STM Fetch GTFS Vehicle Positions Lambda Function ARN"
-    Value: !GetAtt STMFetchGTFSVehiclePositions.Arn
+  STMAnalyzeDailyStopsDataUpdateStatus:
+    Description: "Has STMAnalyzeDailyStopsData been updated?"
+    Value: !If [SetSTMAnalyzeDailyStopsData, "Yes", "No"]
 
-  STMFetchUpdateGTFSStaticfilesFunctionArn:
-    Description: "STM Fetch Update GTFS Static files Lambda Function ARN"
-    Value: !GetAtt STMFetchUpdateGTFSStaticfiles.Arn
+  STMCreateDailyStopsInfoUpdateStatus:
+    Description: "Has STMCreateDailyStopsInfo been updated?"
+    Value: !If [SetSTMCreateDailyStopsInfo, "Yes", "No"]
 
-  STMFetchUpdateGTFSStaticfilesTriggerArn:
-    Description: "ARN of the EventBridge Rule for STMFetchUpdateGTFSStaticfiles"
-    Value: !GetAtt STMFetchUpdateGTFSStaticfilesTrigger.Arn
+  STMFetchGTFSTripUpdatesUpdateStatus:
+    Description: "Has STMFetchGTFSTripUpdates been updated?"
+    Value: !If [SetSTMFetchGTFSTripUpdates, "Yes", "No"]
+  
+  STMFetchGTFSVehiclePositionsUpdateStatus:
+    Description: "Has STMFetchGTFSVehiclePositions been updated?"
+    Value: !If [SetSTMFetchGTFSVehiclePositions, "Yes", "No"]
 
-####### FILTER DAILY GTFS STATIC FILES ########
-  STMFilterDailyGTFStaticfilesFunctionArn:
-    Description: "STM Filter Daily GTFS Static files Lambda Function ARN"
-    Value: !GetAtt STMFilterDailyGTFStaticfiles.Arn
+  STMFetchUpdateGTFSStaticfilesUpdateStatus:
+    Description: "Has STMFetchUpdateGTFSStaticfiles been updated?"
+    Value: !If [SetSTMFetchUpdateGTFSStaticfiles, !Join [" ", ["Yes. It is now version:",!GetAtt STMFetchUpdateGTFSStaticfilesVersion.Version]], "No"]
 
-  STMFilterDailyGTFStaticfilesTriggerArn:
-    Description: "ARN of the EventBridge Rule for STMFilterDailyGTFStaticfiles"
-    Value: !GetAtt STMFilterDailyGTFStaticfilesTrigger.Arn
+  STMFilterDailyGTFStaticfilesStatus:
+    Description: "Has STMFilterDailyGTFStaticfiles been updated?"
+    Value: !If [SetSTMFilterDailyGTFStaticfiles, !Join [" ", ["Yes. It is now version:",!GetAtt STMFilterDailyGTFStaticfilesVersion.Version]], "No"]
 
-  STMAnalyzeDailyStopsDataFunctionArn: 
-    Description: "STM Analyze Daily Stops Data Lambda Function ARN"
-    Value: !GetAtt STMAnalyzeDailyStopsData.Arn
+  STMMergeDailyGTFSVechiclePositionsUpdateStatus:
+    Description: "Has STMMergeDailyGTFSVechiclePositions been updated?"
+    Value: !If [SetSTMMergeDailyGTFSVechiclePositions, "Yes", "No"]
 
-  STMCreateDailyStopsInfoFunctionArn:
-    Description: "STM Create Daily Stops Info files Lambda Function ARN"
-    Value: !GetAtt STMCreateDailyStopsInfo.Arn
-
-  STMMergeDailyGTFSVechiclePositionsFunctionArn:
-    Description: "STM Merge Daily GTFS Vehicle Positions files into one single file Lambda Function ARN"
-    Value: !GetAtt STMMergeDailyGTFSVechiclePositions.Arn
-
-  ####### BIXI functions ########
-  BIXIFetchGBFSStationStatusFunctionArn:
-    Description: "BIXI Fetch Update GBFS Static files Lambda Function ARN"
-    Value: !GetAtt BIXIFetchGBFSStationStatus.Arn
-
-  BIXIFetchGBFSStationStatusTriggerArn:
-    Description: "ARN of the EventBridge Rule for BIXIFetchGBFSStationStatus"
-    Value: !GetAtt BIXIFetchGBFSStationStatusTrigger.Arn
-    
