@@ -60,7 +60,7 @@ jobs:
           echo "STMFetchUpdateStatic=$STMFetchUpdateStatic" >> $GITHUB_ENV
           echo "STMFilterDailyStatic=$STMFilterDailyStatic" >> $GITHUB_ENV
           echo "STMMergeDailyVehiclePosition=$STMMergeDailyVehiclePosition" >> $GITHUB_ENV
-
+          
       - name: Build and Deploy to AWS
         env:
           API_KEY_STM: ${{ secrets.API_KEY_STM }}
