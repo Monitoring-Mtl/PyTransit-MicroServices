@@ -1,4 +1,4 @@
-name: Deploy Lambda Functions to AWS
+name: Continuous Deployment
 
 on: 
     push:
@@ -9,6 +9,10 @@ on:
         - 'STM_Services/**'
     workflow_dispatch:
 
+# Allow one concurrent deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
 
 jobs:
     deploy:
@@ -21,14 +25,14 @@ jobs:
         - name: Set up Python 3.9
           uses: actions/setup-python@v4
           with:
-            python-version: '3.9'  # Set up Python 3.9
+            python-version: '3.9'
           
         - name: Configure AWS Credentials
           uses: aws-actions/configure-aws-credentials@v1-node16
           with:
             aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
             aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-            aws-region: ca-central-1  # Change to your preferred AWS region        - 
+            aws-region: ca-central-1 
 
         - name: Execute Versioning.py and save results
           run: |
@@ -65,7 +69,12 @@ jobs:
           run: |
             sam build
             sam deploy --parameter-overrides ApiUrlStmTrip=$API_URL_STM_TRIP ApiKey=$API_KEY_STM ApiUrlStmVehicle=$API_URL_STM_VEHICLE UpdateCheck="[${BIXI},${STMAnalyzeDailyStop},${STMCreateDailyStop},${STMFetchTripUpdates},${STMFetchVehiclePositions},${STMFetchUpdateStatic},${STMFilterDailyStatic},${STMMergeDailyVehiclePosition}]"
-        
-        - name: Delete JSON File
-          run: |
+
+         - name: Delete JSON File
+           run: |
             rm functions.json
+
+
+
+
+
