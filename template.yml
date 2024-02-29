@@ -218,7 +218,7 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref STMFetchUpdateGTFSStaticfiles
+      FunctionName: !If [SetSTMFetchUpdateGTFSStaticfiles, !Ref STMFetchUpdateGTFSStaticfilesAlias, !Join [":", [!GetAtt STMFetchUpdateGTFSStaticfiles.Arn,"Live"]]]
       Principal: events.amazonaws.com
       SourceArn: !GetAtt STMFetchUpdateGTFSStaticfilesTrigger.Arn
 
@@ -276,7 +276,7 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref STMFilterDailyGTFStaticfiles
+      FunctionName: !If [SetSTMFilterDailyGTFStaticfiles, !Ref STMFilterDailyGTFStaticfilesAlias, !Join [":", [!GetAtt STMFilterDailyGTFStaticfiles.Arn,"Live"]]]
       Principal: events.amazonaws.com
       SourceArn: !GetAtt STMFilterDailyGTFStaticfilesTrigger.Arn
 
