@@ -87,17 +87,42 @@ Resources:
           API_KEY_STM: !Ref ApiKeyStm
 
 ####################### FETCH GBFS STATION_STATUS #######################
+  BIXIFetchGBFSStationStatusRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+  
   BIXIFetchGBFSStationStatus:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       Description: "Fetch Bixi station status data and parse it into a parquet file that is then save on a s3 bucket"
       Timeout: 15 # Timeout in seconds
       MemorySize: 256
+      Role: !GetAtt BIXIFetchGBFSStationStatusRole.Arn
       CodeUri: BIXI_Services/BIXI_Fetch_GBFS_Station_Status/
       Handler: main.lambda_handler
       Runtime: python3.9
       Architectures:
         - x86_64
+
+  BIXIFetchGBFSStationStatusPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: BIXIFetchGBFSStationStatusPolicy
+      Roles:
+        - !Ref BIXIFetchGBFSStationStatusRole
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: s3:PutObject
+            Resource: arn:aws:s3:::monitoring-mtl-bixi-gtfs-station-status-dev/*
 
   BIXIFetchGBFSStationStatusVersion:
     Condition: SetBIXIFetchGBFSStationStatus
@@ -125,7 +150,7 @@ Resources:
       State: ENABLED
       Targets:
         - Arn: !If [SetBIXIFetchGBFSStationStatus, !Ref BIXIFetchGBFSStationStatusAlias, !Join [":", [!GetAtt BIXIFetchGBFSStationStatus.Arn,"Live"]]]
-          Id: "TargetFunction"
+          Id: "TargetBixiAlias"
           Input: >-
             {
               "bucket_name": "monitoring-mtl-bixi-gtfs-station-status-dev",
@@ -136,7 +161,7 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref BIXIFetchGBFSStationStatus
+      FunctionName: !If [SetBIXIFetchGBFSStationStatus, !Ref BIXIFetchGBFSStationStatusAlias, !Join [":", [!GetAtt BIXIFetchGBFSStationStatus.Arn,"Live"]]]
       Principal: events.amazonaws.com
       SourceArn: !GetAtt BIXIFetchGBFSStationStatusTrigger.Arn
 

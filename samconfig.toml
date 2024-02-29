@@ -19,7 +19,7 @@ confirm_changeset = false
 resolve_s3 = true
 s3_prefix = "py-transit"
 region = "ca-central-1"
-parameter_overrides = "ApiKey=\"API_KEY_STM\" ApiUrlStmTrip=\"API_URL_STM_TRIP\" ApiUrlStmVehicle=\"API_URL_STM_VEHICLE\""
+parameter_overrides = "ApiKey=\"API_KEY_STM\" ApiUrlStmTrip=\"API_URL_STM_TRIP\" ApiUrlStmVehicle=\"API_URL_STM_VEHICLE\" UpdateCheck=\"[0,0,0,0,0,0,0,0]\""
 image_repositories = []
 
 [default.package.parameters]
