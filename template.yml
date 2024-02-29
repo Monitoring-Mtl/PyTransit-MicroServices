@@ -326,6 +326,49 @@ Resources:
               API_URL_STM_VEHICLE: !Ref ApiUrlStmVehicle
               API_KEY_STM: !Ref ApiKeyStm
 
+  STMCreateDailyStopsInfoVersion:
+    Condition: SetSTMCreateDailyStopsInfo
+    Type: AWS::Lambda::Version
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      FunctionName: !Ref STMCreateDailyStopsInfo
+
+  STMCreateDailyStopsInfoAlias:
+    Condition: SetSTMCreateDailyStopsInfo
+    Type: AWS::Lambda::Alias
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      FunctionName: !Ref STMCreateDailyStopsInfo
+      FunctionVersion: !GetAtt STMCreateDailyStopsInfoVersion.Version
+      Name: Live
+
+  STMCreateDailyStopsInfoTrigger:
+    Type: AWS::Events::Rule
+    Properties:
+      ScheduleExpression: cron(15 1 * * ? *)
+      State: ENABLED
+      Targets:
+        - Arn: !If [SetSTMCreateDailyStopsInfo, !Ref STMCreateDailyStopsInfoAlias, !Join [":", [!GetAtt STMCreateDailyStopsInfo.Arn,"Live"]]]
+          Id: "TargetFunction"
+          Input: >-
+            {
+              "static_bucket": "monitoring-mtl-gtfs-static",
+              "daily_static_bucket": "monitoring-mtl-gtfs-static-daily",
+              "output_bucket": "monitoring-mtl-gtfs-daily-stops-infos",
+              "timezone": "America/Montreal"
+            }
+          
+  STMCreateDailyStopsInfoPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !If [SetSTMCreateDailyStopsInfo, !Ref STMCreateDailyStopsInfoAlias, !Join [":", [!GetAtt STMCreateDailyStopsInfo.Arn,"Live"]]]
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt STMCreateDailyStopsInfoTrigger.Arn
+
+####################### MERGE DAILY VEHICLE POSITIONS #######################
   STMMergeDailyGTFSVechiclePositions:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
@@ -347,6 +390,48 @@ Resources:
               API_URL_STM_TRIP: !Ref ApiUrlStmTrip
               API_URL_STM_VEHICLE: !Ref ApiUrlStmVehicle
               API_KEY_STM: !Ref ApiKeyStm
+  
+  STMMergeDailyGTFSVechiclePositionsVersion:
+    Condition: SetSTMMergeDailyGTFSVechiclePositions
+    Type: AWS::Lambda::Version
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      FunctionName: !Ref STMMergeDailyGTFSVechiclePositions
+
+  STMMergeDailyGTFSVechiclePositionsAlias:
+    Condition: SetSTMMergeDailyGTFSVechiclePositions
+    Type: AWS::Lambda::Alias
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      FunctionName: !Ref STMMergeDailyGTFSVechiclePositions
+      FunctionVersion: !GetAtt STMMergeDailyGTFSVechiclePositionsVersion.Version
+      Name: Live
+
+  STMMergeDailyGTFSVechiclePositionsTrigger:
+    Type: AWS::Events::Rule
+    Properties:
+      ScheduleExpression: cron(58 23 * * ? *)
+      State: ENABLED
+      Targets:
+        - Arn: !If [SetSTMMergeDailyGTFSVechiclePositions, !Ref STMMergeDailyGTFSVechiclePositionsAlias, !Join [":", [!GetAtt STMMergeDailyGTFSVechiclePositions.Arn,"Live"]]]
+          Id: "TargetFunction"
+          Input: >-
+            {
+              "input_bucket": "monitoring-mtl-stm-gtfs-vehicle-positions",
+              "output_bucket": "monitoring-mtl-stm-gtfs-vehicle-positions-daily-merge",
+              "timezone": "America/Montreal",
+              "workers": 10
+            }
+          
+  STMMergeDailyGTFSVechiclePositionsPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !If [SetSTMMergeDailyGTFSVechiclePositions, !Ref STMMergeDailyGTFSVechiclePositionsAlias, !Join [":", [!GetAtt STMMergeDailyGTFSVechiclePositions.Arn,"Live"]]]
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt STMMergeDailyGTFSVechiclePositionsTrigger.Arn
     
 Outputs:
 
@@ -381,4 +466,3 @@ Outputs:
   STMMergeDailyGTFSVechiclePositionsUpdateStatus:
     Description: "Has STMMergeDailyGTFSVechiclePositions been updated?"
     Value: !If [SetSTMMergeDailyGTFSVechiclePositions, "Yes", "No"]
-
