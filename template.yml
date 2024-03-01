@@ -62,6 +62,24 @@ Resources:
           API_URL_STM_TRIP: !Ref ApiUrlStmTrip
           API_URL_STM_VEHICLE: !Ref ApiUrlStmVehicle
           API_KEY_STM: !Ref ApiKeyStm
+  
+  STMFetchGTFSTripUpdatesVersion:
+    Condition: SetSTMFetchGTFSTripUpdates
+    Type: AWS::Lambda::Version
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      FunctionName: !Ref STMFetchGTFSTripUpdates
+
+  STMFetchGTFSTripUpdatesAlias:
+    Condition: SetSTMFetchGTFSTripUpdates
+    Type: AWS::Lambda::Alias
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      FunctionName: !Ref STMFetchGTFSTripUpdates
+      FunctionVersion: !GetAtt STMFetchGTFSTripUpdatesVersion.Version
+      Name: Live
 
 ####################### FETCH GTFS VEHICLE_POSISTIONS #######################
   STMFetchGTFSVehiclePositions:
@@ -74,17 +92,131 @@ Resources:
       Runtime: python3.9
       Architectures:
         - x86_64
-      Events:
-        Start:
-          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
-          Properties:
-            Path: /vehiclePositions
-            Method: get
       Environment:
         Variables:
           API_URL_STM_TRIP: !Ref ApiUrlStmTrip
           API_URL_STM_VEHICLE: !Ref ApiUrlStmVehicle
           API_KEY_STM: !Ref ApiKeyStm
+
+  STMFetchGTFSVehiclePositionsVersion:
+    Condition: SetSTMFetchGTFSVehiclePositions
+    Type: AWS::Lambda::Version
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      FunctionName: !Ref STMFetchGTFSVehiclePositions
+
+  STMFetchGTFSVehiclePositionsAlias:
+    Condition: SetSTMFetchGTFSVehiclePositions
+    Type: AWS::Lambda::Alias
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      FunctionName: !Ref STMFetchGTFSVehiclePositions
+      FunctionVersion: !GetAtt STMFetchGTFSVehiclePositionsVersion.Version
+      Name: Live
+
+  STMFetchGTFSVehiclePositionsStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      DefinitionSubstitutions:
+        LambdaFunctionArn: !If [SetSTMFetchGTFSVehiclePositions, !Ref STMFetchGTFSVehiclePositionsAlias, !Join [":", [!GetAtt STMFetchGTFSVehiclePositions.Arn,"Live"]]]
+      Definition:
+        StartAt: Fetch_GTFS_Vehicles
+        States:
+          Fetch_GTFS_Vehicles:
+            Type: Map
+            ItemsPath: $.range(1, 6)  # Will iterate from 1 to 5
+            Iterator:
+              StartAt: Fetch_GTFS_Vehicle
+              States:
+                Fetch_GTFS_Vehicle:
+                  Type: Task
+                  Resource: arn:aws:states:::lambda:invoke
+                  Parameters:
+                    FunctionName: !If [SetSTMFetchGTFSVehiclePositions, !Ref STMFetchGTFSVehiclePositionsAlias, !Join [":", [!GetAtt STMFetchGTFSVehiclePositions.Arn,"Live"]]]
+                    Payload.$: $
+                  Retry:
+                    - ErrorEquals:
+                        - Lambda.ServiceException
+                        - Lambda.AWSLambdaException
+                        - Lambda.SdkClientException
+                        - Lambda.TooManyRequestsException
+                      IntervalSeconds: 1
+                      MaxAttempts: 3
+                      BackoffRate: 2
+                  Next: WaitOrEnd
+                WaitOrEnd:
+                  Type: Choice
+                  Choices:
+                    - Condition: "Variable('$.iterator') < 5"  # Wait for 4 times
+                      Next: Wait10Sec
+                    - Condition: "Variable('$.iterator') == 5"  # End the state machine after 5 iterations
+                      End: true
+                Wait10Sec:
+                  Type: Wait
+                  Seconds: 10
+                  Next: Fetch_GTFS_Vehicles
+        Comment: Fetch GTFS Vehicles Positions 5 times per 60 seconds and store in S3 Bucket (EXPRESSS)
+      Type: EXPRESS
+      Role: !GetAtt StateMachineExecutionRole.Arn
+      Logging:
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt StateMachineLogGroup.Arn
+        IncludeExecutionData: true
+        Level: ALL
+
+  StateMachineLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/vendedlogs/states/STMStateMachineLogGroup
+      RetentionInDays: 30
+
+  StateMachineScheduler:
+    Type: AWS::Events::Rule
+    Properties:
+      ScheduleExpression: "rate(1 minute)"
+      Targets:
+        - Arn: !Ref STMFetchGTFSVehiclePositionsStateMachine
+          Id: "StateMachineSchedule"
+          RoleArn: !GetAtt StateMachineExecutionRole.Arn
+          Input: >
+            {
+              "bucket_name": "monitoring-mtl-stm-gtfs-vehicle-positions",
+              "timezone": "America/Montreal"
+            }
+            
+  StateMachineExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: "states.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: "StateMachineExecutionPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "lambda:InvokeFunction"
+                Resource: !If [SetSTMFetchGTFSVehiclePositions, !Ref STMFetchGTFSVehiclePositionsAlias, !Join [":", [!GetAtt STMFetchGTFSVehiclePositions.Arn,"Live"]]]
+        - PolicyName: "CloudWatchLogsPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: 
+                  - !GetAtt StateMachineLogGroup.Arn
 
 ####################### FETCH GBFS STATION_STATUS #######################
   BIXIFetchGBFSStationStatusRole:
@@ -302,6 +434,24 @@ Resources:
             API_URL_STM_TRIP: !Ref ApiUrlStmTrip
             API_URL_STM_VEHICLE: !Ref ApiUrlStmVehicle
             API_KEY_STM: !Ref ApiKeyStm
+
+  STMAnalyzeDailyStopsDataVersion:
+    Condition: SetSTMAnalyzeDailyStopsData
+    Type: AWS::Lambda::Version
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      FunctionName: !Ref STMAnalyzeDailyStopsData
+
+  STMAnalyzeDailyStopsDataAlias:
+    Condition: SetSTMAnalyzeDailyStopsData
+    Type: AWS::Lambda::Alias
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      FunctionName: !Ref STMAnalyzeDailyStopsData
+      FunctionVersion: !GetAtt STMAnalyzeDailyStopsDataVersion.Version
+      Name: Live
 
 ####################### CREATE DAILY STOPS INFO #######################
   STMCreateDailyStopsInfo:
