@@ -55,9 +55,6 @@ jobs:
         uses: github/codeql-action/analyze@v2
         with:
           output: codeql-results
-      - name: List SARIF file location
-        run: |
-          find . -name '*.sarif'
     
   deployment:
     if: ${{ inputs.deploy == 'true' }}
@@ -70,4 +67,4 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: codeql-results
-          path: '**/codeql-results/**/*.sarif'
+          path: ./codeql-results/python.sarif
