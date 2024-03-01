@@ -67,4 +67,4 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: codeql-results
-          path: codeql-results/**/*.sarif
+          path: '**/codeql-results/**/*.sarif'
