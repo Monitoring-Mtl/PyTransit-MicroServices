@@ -37,9 +37,9 @@ def lambda_handler(event, context):
     file_name_next_day = next_day.strftime('%Y-%m-%d')
 
     # Define the name of the local files
-    local_static_file_name = f'/tmp/filtered_stop_times_{file_name}.parquet'
-    local_file_name = f'/tmp/Daily_merge_{file_name}.parquet'
-    local_file_name_next_day = f'/tmp/Daily_merge_{file_name_next_day}.parquet'
+    local_static_file_name = f'./tmp/filtered_stop_times_{file_name}.parquet'
+    local_file_name = f'./tmp/Daily_merge_{file_name}.parquet'
+    local_file_name_next_day = f'./tmp/Daily_merge_{file_name_next_day}.parquet'
 
     # Define the folder and file structure on S3
     key_static = f'{folder_name}/filtered_stop_times/filtered_stop_times_{file_name}.parquet'
@@ -90,10 +90,10 @@ def lambda_handler(event, context):
         'departure_time_offset'
     ])
 
-    # Perform the left join
+    # Perform the join
     df_final = df_stops_unix.join(
         df_processed,
-        how='left',
+        how='inner',
         left_on=['trip_id', 'stop_sequence'],
         right_on=['trip_id', 'vehicle_currentStopSequence']
     )
@@ -102,14 +102,13 @@ def lambda_handler(event, context):
     df_final = df_final.drop('vehicle_currentStatus')
     df_final = df_final.rename({'id': 'vehicleID', 'vehicle_occupancyStatus': 'Current_Occupancy',
                                 'vehicle_trip_routeId': 'routeId'})
-
     df_final = df_final.cast({'routeId': pl.Int64})
 
-    df_final.write_parquet(f'/tmp/data_stops_{file_name}.parquet')
+    df_final.write_parquet(f'./tmp/data_stops_{file_name}.parquet')
 
     # Upload the final file back to S3
     output_key = f'{folder_name}/data_stops_{file_name}.parquet'  # Set your output file path here
-    upload_file_from_tmp(f'/tmp/data_stops_{file_name}.parquet', output_bucket, output_key)
+    upload_file_from_tmp(f'./tmp/data_stops_{file_name}.parquet', output_bucket, output_key)
 
     clean_tmp_folder()
 
@@ -154,7 +153,7 @@ def upload_file_from_tmp(local_file_name, bucket, key):
 
 
 def clean_tmp_folder():
-    tmp_dir = '/tmp'
+    tmp_dir = './tmp'
     for item in os.listdir(tmp_dir):
         item_path = os.path.join(tmp_dir, item)
         try:
