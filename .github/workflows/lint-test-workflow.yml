@@ -49,9 +49,7 @@ jobs:
 
       - name: Deploy to GitHub Pages
         if: ${{ inputs.deploy == 'true' }}
-        environment:
-          name: github-pages
         uses: actions/deploy-pages@v3
-        with:
+        with:d
           artifact_name: test-coverage
           token: ${{ secrets.GITHUB_TOKEN }}
