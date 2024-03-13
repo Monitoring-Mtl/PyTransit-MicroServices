@@ -8,6 +8,9 @@ on:
         required: false
         default: 'false'
         type: string
+        
+environment:
+  name: github-pages
 
 jobs:
   lint-and-testing:
@@ -48,7 +51,7 @@ jobs:
 
       - name: Deploy to GitHub Pages
         if: ${{ inputs.deploy == 'true' }}
-        uses: actions/deploy-pages@v2
+        uses: actions/deploy-pages@v3
         with:
           artifact_name: test-coverage
           token: ${{ secrets.GITHUB_TOKEN }}
