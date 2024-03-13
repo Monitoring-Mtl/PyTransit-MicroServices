@@ -12,7 +12,12 @@ from datetime import datetime, timedelta
 from urllib.request import Request, urlopen
 
 # Set up S3 client
-s3 = boto3.client('s3')
+s3 = boto3.client('s3', aws_access_key_id=os.environ['aws_access_key_id'], aws_secret_access_key=os.environ['aws_secret_access_key'])
+    
+def download_file_to_tmp(bucket, key):
+    local_path = f"/tmp/{os.path.basename(key)}"
+    s3.download_file(Bucket=bucket, Key=key, Filename=local_path)
+    return local_path
 
 def download_from_s3(bucket_name, file_key):
     try:
@@ -48,19 +53,12 @@ def save_dataframe_to_database(dataframe):
 def lambda_handler(event, context):
     # Define the buckets and file paths
     stm_analytics_bucket = event['input_bucket']
-    timezone_str = event.get('timezone', 'America/Montreal')  # Default to 'America/Montreal' if not specified
-    eastern = pytz.timezone(timezone_str)
-
-    # Extract the date from the event, or use the current date in the specified timezone (Format YYYYMMDD)
-    date_str = event.get('date', datetime.now(eastern).strftime('%Y%m%d'))
-
-    # Parse the date string into a datetime object
-    date_obj = datetime.strptime(date_str, '%Y%m%d')
-    date_obj = eastern.localize(date_obj)
-    folder_name = date_obj.strftime('%Y/%m/%d')
-    
-    # Get daily analytics data from parquet
-    daily_data = get_daily_parquet_file(stm_analytics_bucket, folder_name)
+    #test pour 2024/01/01 et 2023/11/02
+    daily_data_01 = get_daily_parquet_file(stm_analytics_bucket, '2024/01/01')
+    daily_data_01 = daily_data_01.filter(pl.col('offset').is_not_null())
+    daily_data_02 = get_daily_parquet_file(stm_analytics_bucket, '2023/11/02')
+    daily_data_02 = daily_data_02.filter(pl.col('offset').is_not_null())
+    analytics_data = pl.concat([daily_data_01, daily_data_02], rechunk=True)
 
     # Filter out null offsets, if any
     daily_data = daily_data.filter(pl.col('offset').is_not_null())
@@ -95,3 +93,9 @@ def lambda_handler(event, context):
     daily_data = daily_data.select(['stop_id', 'previous_stop_id', 'offset_difference'])
 
     save_dataframe_to_database(daily_data)
+
+if __name__ == '__main__':
+    event = {}
+    event['input_bucket'] = 'monitoring-mtl-stm-analytics'
+    event['output_bucket'] = 'monitoring-mtl-stm-gtfs-vehicle-positions-daily-merge'
+    lambda_handler(event, None)
