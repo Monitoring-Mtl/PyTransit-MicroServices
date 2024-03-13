@@ -1,5 +1,14 @@
 name: Security and code analysis
 
+on:
+  workflow_call:
+    inputs:
+      deploy:
+        description: 'Deploy to GitHub Pages (true/false)'
+        required: false
+        default: 'false'
+        type: string
+
 jobs:
   security:
     runs-on: ubuntu-latest
