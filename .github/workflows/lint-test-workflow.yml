@@ -32,6 +32,7 @@ jobs:
       
       - name: Run tests with coverage
         run: pytest --cov-report html:htmlcov tests/
+
       
       - name: Configure pages
         if: ${{ inputs.deploy == 'true' }}
@@ -45,6 +46,7 @@ jobs:
         with:
           name: test-coverage
           path: ./htmlcov  
+
 
       - name: Deploy to GitHub Pages
         if: ${{ inputs.deploy == 'true' }}
