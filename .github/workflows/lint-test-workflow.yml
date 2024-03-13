@@ -67,8 +67,8 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: List files
-        run: ls -l ./ 
+      - name: Find coverage.xml
+        run: find . -name 'coverage.xml' -exec ls -l {} \;
 
       - name: Upload artifact for deployment
         uses: actions/upload-pages-artifact@v1
