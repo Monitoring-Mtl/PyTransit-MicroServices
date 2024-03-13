@@ -11,6 +11,9 @@ on:
 
 jobs:
   lint-and-testing:
+    needs: build
+    environment:
+      name: github-pages
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
