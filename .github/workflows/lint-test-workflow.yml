@@ -10,7 +10,7 @@ on:
         type: string
 
 jobs:
-  build-and-deploy:
+  lint-and-testing:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -25,9 +25,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install flake8 pytest pytest-cov
-          if [[ "${{ inputs.deploy }}" == 'true' ]]; then
-            pip install ghp-import
-          fi
           pip install -r tests/requirements.txt
       
       - name: Lint with flake8
@@ -36,9 +33,22 @@ jobs:
       - name: Run tests with coverage
         run: pytest tests/ --cov=./ --cov-report=xml
       
+      - name: Configure pages
+        if: ${{ github.event.inputs.deploy == 'true' }}
+        uses: actions/configure-pages@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifact for deployment
+        if: ${{ github.event.inputs.deploy == 'true' }}
+        uses: actions/upload-pages-artifact@v1
+        with:
+          name: test-coverage
+          path: ./coverage.xml  
+
       - name: Deploy to GitHub Pages
-        if: ${{ inputs.deploy == 'true' }}
-        run: |
-          ghp-import -n -p -f ./coverage.xml
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: ${{ github.event.inputs.deploy == 'true' }}
+        uses: actions/deploy-pages@v2
+        with:
+          artifact_name: test-coverage
+          token: ${{ secrets.GITHUB_TOKEN }}
