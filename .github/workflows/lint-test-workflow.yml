@@ -50,6 +50,9 @@ jobs:
 
       - name: Run tests with coverage
         run: pytest tests/ --cov=./ --cov-report=xml
+      
+      - name: List files
+        run: ls -l ./ 
     
   deployment:
     if: ${{ inputs.deploy == 'true' }}
@@ -64,11 +67,14 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: List files
+        run: ls -l ./ 
+
       - name: Upload artifact for deployment
         uses: actions/upload-pages-artifact@v1
         with:
           name: test-coverage
-          path: ./coverage.xml
+          path: ././coverage.xml
 
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v2
