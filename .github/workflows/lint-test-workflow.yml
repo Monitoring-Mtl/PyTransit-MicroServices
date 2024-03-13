@@ -8,11 +8,11 @@ on:
         required: false
         default: 'false'
         type: string
-        
-environment:
-  name: github-pages
 
 jobs:
+  environment:
+  name: github-pages
+  
   lint-and-testing:
     runs-on: ubuntu-latest
     steps:
