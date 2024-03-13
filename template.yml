@@ -323,7 +323,7 @@ Resources:
     Properties:
       Description: "Looks if the bus schedule on the bucket is up to date with the STM files and updates it if not"
       Timeout: 60 # Timeout in seconds
-      MemorySize: 1024
+      MemorySize: 2048
       CodeUri: STM_Services/STM_Fetch_Update_GTFS_Static_files/
       Handler: main.lambda_handler
       Runtime: python3.9
