@@ -51,8 +51,8 @@ jobs:
       - name: Run tests with coverage
         run: pytest tests/ --cov=./ --cov-report=xml
       
-      - name: List files
-        run: ls -l ./ 
+      - name: Find coverage.xml
+        run: find . -name 'coverage.xml' -exec ls -l {} \;
     
   deployment:
     if: ${{ inputs.deploy == 'true' }}
