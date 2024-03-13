@@ -11,9 +11,6 @@ on:
 
 jobs:
   lint-and-testing:
-    environment:
-      name: github-pages
-
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -57,3 +54,5 @@ jobs:
         with:
           artifact_name: test-coverage
           token: ${{ secrets.GITHUB_TOKEN }}
+        environment:
+          name: github-pages
