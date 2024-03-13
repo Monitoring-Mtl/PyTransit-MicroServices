@@ -10,9 +10,6 @@ on:
         type: string
 
 jobs:
-  environment:
-  name: github-pages
-  
   lint-and-testing:
     runs-on: ubuntu-latest
     steps:
@@ -51,6 +48,8 @@ jobs:
 
       - name: Deploy to GitHub Pages
         if: ${{ inputs.deploy == 'true' }}
+        environment:
+          name: github-pages
         uses: actions/deploy-pages@v3
         with:
           artifact_name: test-coverage
