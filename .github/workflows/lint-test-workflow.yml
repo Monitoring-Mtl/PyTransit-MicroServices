@@ -52,3 +52,5 @@ jobs:
         with:
           artifact_name: test-coverage
           token: ${{ secrets.GITHUB_TOKEN }}
+        environment:
+          name: github-pages
