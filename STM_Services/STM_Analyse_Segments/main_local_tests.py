@@ -48,7 +48,7 @@ def get_daily_parquet_file(bucket_name, prefix):
     return None
 
 def save_dataframe_to_database(dataframe):
-    print('TODO:')
+    print('TODO')
 
 def lambda_handler(event, context):
     # Define the buckets and file paths
@@ -61,7 +61,7 @@ def lambda_handler(event, context):
     analytics_data = pl.concat([daily_data_01, daily_data_02], rechunk=True)
 
     # Filter out null offsets, if any
-    daily_data = daily_data.filter(pl.col('offset').is_not_null())
+    daily_data = analytics_data.filter(pl.col('offset').is_not_null())
 
     # Sort the DataFrame by trip_id, stop_sequence, and arrival_time_unix for sequential analysis in time
     daily_data = daily_data.sort(by=['trip_id', 'stop_sequence', 'arrival_time_unix'])
