@@ -29,5 +29,5 @@ jobs:
       deploy: ${{ github.event.inputs.enable_deployment }}
 
   security-and-analysis:
-    name: Security, code analysis and deploy analysis to Github Pages
+    name: Security and code analysis
     uses: ./.github/workflows/security-analysis-workflow.yml

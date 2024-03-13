@@ -31,8 +31,11 @@ jobs:
         run: flake8 . --count --exit-zero --max-line-length=127 --statistics --exclude=.aws-sam
       
       - name: Run tests with coverage
-        run: pytest tests/ --cov=./ --cov-report=xml
+        run: pytest tests/ --cov=. --cov-report=html:htmlcov
       
+      - name: List contents of the htmlcov directory
+        run: ls -la htmlcov
+
       - name: Configure pages
         if: ${{ inputs.deploy == 'true' }}
         uses: actions/configure-pages@v3
@@ -44,7 +47,7 @@ jobs:
         uses: actions/upload-pages-artifact@v1
         with:
           name: test-coverage
-          path: ./  
+          path: htmlcov/  
 
       - name: Deploy to GitHub Pages
         if: ${{ inputs.deploy == 'true' }}
