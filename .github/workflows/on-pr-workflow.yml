@@ -19,6 +19,7 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  security-events: write
 
 jobs:
   lint-and-test:
@@ -30,6 +31,4 @@ jobs:
   security-and-analysis:
     name: Security, code analysis and deploy analysis to Github Pages
     uses: ./.github/workflows/security-analysis-workflow.yml
-    with:
-      deploy: ${{ github.event.inputs.enable_deployment }}
 
