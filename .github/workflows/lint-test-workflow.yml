@@ -32,9 +32,6 @@ jobs:
       
       - name: Run tests with coverage
         run: pytest tests/ --cov=. --cov-report=html:htmlcov
-      
-      - name: List contents of the htmlcov directory
-        run: ls -la htmlcov
 
       - name: Configure pages
         if: ${{ inputs.deploy == 'true' }}
