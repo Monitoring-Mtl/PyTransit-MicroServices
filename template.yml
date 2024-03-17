@@ -253,7 +253,8 @@ Resources:
   BIXIFetchGBFSStationStatus:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      Description: "Fetches Bixi station status data and parse it into a parquet file that is then save on a s3 bucket"
+      #Description: "Fetches Bixi station status data and parse it into a parquet file that is then save on a s3 bucket"
+      Description: "TEMPO"
       Timeout: 15 # Timeout in seconds
       MemorySize: 256
       Role: !GetAtt BIXIFetchGBFSStationStatusRole.Arn
