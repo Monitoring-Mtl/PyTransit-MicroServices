@@ -652,7 +652,3 @@ Outputs:
   STMMergeDailyGTFSVechiclePositionsUpdateStatus:
     Description: "Has STMMergeDailyGTFSVechiclePositions been updated?"
     Value: !If [SetSTMMergeDailyGTFSVechiclePositions, !Join [" ", ["Yes. It is now version:",!GetAtt STMMergeDailyGTFSVechiclePositionsVersion.Version]], "No"]
-
-  UpdateCheckValues:
-    Description: "These are the value passed to the deployment to check which function to update:"
-    Value: !Join [", ", [!Select [0, !Ref UpdateCheck], !Select [1, !Ref UpdateCheck], !Select [2, !Ref UpdateCheck], !Select [3, !Ref UpdateCheck], !Select [4, !Ref UpdateCheck], !Select [5, !Ref UpdateCheck], !Select [6, !Ref UpdateCheck], !Select [7, !Ref UpdateCheck]]]
