@@ -627,19 +627,19 @@ Outputs:
 
   STMAnalyzeDailyStopsDataUpdateStatus:
     Description: "Has STMAnalyzeDailyStopsData been updated?"
-    Value: !If [SetSTMAnalyzeDailyStopsData, "Yes", "No"]
+    Value: !If [SetSTMAnalyzeDailyStopsData, !Join [" ", ["Yes. It is now version:",!GetAtt STMAnalyzeDailyStopsDataVersion.Version]], "No"]
 
   STMCreateDailyStopsInfoUpdateStatus:
     Description: "Has STMCreateDailyStopsInfo been updated?"
-    Value: !If [SetSTMCreateDailyStopsInfo, "Yes", "No"]
+    Value: !If [SetSTMCreateDailyStopsInfo, !Join [" ", ["Yes. It is now version:",!GetAtt STMCreateDailyStopsInfoUpdateStatusVersion.Version]], "No"]
 
   STMFetchGTFSTripUpdatesUpdateStatus:
     Description: "Has STMFetchGTFSTripUpdates been updated?"
-    Value: !If [SetSTMFetchGTFSTripUpdates, "Yes", "No"]
+    Value: !If [SetSTMFetchGTFSTripUpdates, !Join [" ", ["Yes. It is now version:",!GetAtt STMFetchGTFSTripUpdatesUpdateStatus.Version]], "No"]
   
   STMFetchGTFSVehiclePositionsUpdateStatus:
     Description: "Has STMFetchGTFSVehiclePositions been updated?"
-    Value: !If [SetSTMFetchGTFSVehiclePositions, "Yes", "No"]
+    Value: !If [SetSTMFetchGTFSVehiclePositions, !Join [" ", ["Yes. It is now version:",!GetAtt STMFetchGTFSVehiclePositionsUpdateStatus.Version]], "No"]
 
   STMFetchUpdateGTFSStaticfilesUpdateStatus:
     Description: "Has STMFetchUpdateGTFSStaticfiles been updated?"
@@ -651,4 +651,4 @@ Outputs:
 
   STMMergeDailyGTFSVechiclePositionsUpdateStatus:
     Description: "Has STMMergeDailyGTFSVechiclePositions been updated?"
-    Value: !If [SetSTMMergeDailyGTFSVechiclePositions, "Yes", "No"]
+    Value: !If [SetSTMMergeDailyGTFSVechiclePositions, !Join [" ", ["Yes. It is now version:",!GetAtt STMMergeDailyGTFSVechiclePositionsVersion.Version]], "No"]
