@@ -65,7 +65,7 @@ jobs:
           API_URL_STM_VEHICLE: ${{ secrets.API_URL_STM_VEHICLE }}
         run: |
           sam build
-          sam deploy --parameter-overrides ApiUrlStmTrip=$API_URL_STM_TRIP ApiKey=$API_KEY_STM ApiUrlStmVehicle=$API_URL_STM_VEHICLE UpdateCheck="[${BIXI},${STMAnalyzeDailyStop},${STMCreateDailyStop},${STMFetchTripUpdates},${STMFetchVehiclePositions},${STMFetchUpdateStatic},${STMFilterDailyStatic},${STMMergeDailyVehiclePosition}]"
+          sam deploy --parameter-overrides ApiUrlStmTrip=$API_URL_STM_TRIP ApiKey=$API_KEY_STM ApiUrlStmVehicle=$API_URL_STM_VEHICLE UpdateCheck="${BIXI},${STMAnalyzeDailyStop},${STMCreateDailyStop},${STMFetchTripUpdates},${STMFetchVehiclePositions},${STMFetchUpdateStatic},${STMFilterDailyStatic},${STMMergeDailyVehiclePosition}"
 
       - name: Delete JSON File
         run: rm functions.json
