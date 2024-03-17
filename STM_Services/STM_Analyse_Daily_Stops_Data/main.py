@@ -13,7 +13,7 @@ s3 = boto3.client('s3')
 
 def lambda_handler(event, context):
 
-    bucket_static_daily = event['bucket_static_daily']
+    bucket_static_daily = event['daily_bucket_static']
     bucket_vehicle_positions_daily_merge = event['bucket_vehicle_positions_daily_merge']
     output_bucket = event['output_bucket']
     timezone_str = event.get('timezone', 'America/Montreal')  # Default to 'America/Montreal' if not specified

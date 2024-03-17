@@ -44,6 +44,7 @@ Resources:
   STMFetchGTFSTripUpdates:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
+      Description: "Fetches update in STM real time schedule to detect delay or advance"
       Timeout: 15 # Timeout in seconds
       MemorySize: 256
       CodeUri: STM_Services/STM_Fetch_GTFS_TripUpdates/
@@ -51,22 +52,58 @@ Resources:
       Runtime: python3.9
       Architectures:
         - x86_64
-      Events:
-        Start:
-          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
-          Properties:
-            Path: /tripUpdates
-            Method: get
       Environment:
         Variables:
           API_URL_STM_TRIP: !Ref ApiUrlStmTrip
           API_URL_STM_VEHICLE: !Ref ApiUrlStmVehicle
           API_KEY_STM: !Ref ApiKeyStm
+  
+  STMFetchGTFSTripUpdatesVersion:
+    Condition: SetSTMFetchGTFSTripUpdates
+    Type: AWS::Lambda::Version
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      FunctionName: !Ref STMFetchGTFSTripUpdates
+
+  STMFetchGTFSTripUpdatesAlias:
+    Condition: SetSTMFetchGTFSTripUpdates
+    Type: AWS::Lambda::Alias
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      FunctionName: !Ref STMFetchGTFSTripUpdates
+      FunctionVersion: !GetAtt STMFetchGTFSTripUpdatesVersion.Version
+      Name: Live
+  
+  STMFetchGTFSTripUpdatesTrigger:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "Calls STMFetchGTFSTripUpdates every 15 minute"
+      ScheduleExpression: rate(15 minutes)
+      State: ENABLED
+      Targets:
+        - Arn: !If [SetSTMFetchGTFSTripUpdates, !Ref STMFetchGTFSTripUpdatesAlias, !Join [":", [!GetAtt STMFetchGTFSTripUpdates.Arn,"Live"]]]
+          Id: "TargetBixiAlias"
+          Input: >-
+            {
+              "bucket_name": "monitoring-mtl-stm-gtfs-trip-updates",
+              "timezone": "America/Montreal"
+            }
+  
+  STMFetchGTFSTripUpdatesPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !If [SetSTMFetchGTFSTripUpdates, !Ref STMFetchGTFSTripUpdatesAlias, !Join [":", [!GetAtt STMFetchGTFSTripUpdates.Arn,"Live"]]]
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt STMFetchGTFSTripUpdatesTrigger.Arn
 
 ####################### FETCH GTFS VEHICLE_POSISTIONS #######################
   STMFetchGTFSVehiclePositions:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
+      Description: "Fetches bus positions and other information in real time"
       Timeout: 10 # Timeout in seconds
       MemorySize: 128
       CodeUri: STM_Services/STM_Fetch_GTFS_VehiclePositions/
@@ -74,30 +111,170 @@ Resources:
       Runtime: python3.9
       Architectures:
         - x86_64
-      Events:
-        Start:
-          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
-          Properties:
-            Path: /vehiclePositions
-            Method: get
       Environment:
         Variables:
           API_URL_STM_TRIP: !Ref ApiUrlStmTrip
           API_URL_STM_VEHICLE: !Ref ApiUrlStmVehicle
           API_KEY_STM: !Ref ApiKeyStm
 
+#Broken function so we keep it at version 1 until fixed
+  # STMFetchGTFSVehiclePositionsVersion:
+  #   Condition: SetSTMFetchGTFSVehiclePositions
+  #   Type: AWS::Lambda::Version
+  #   DeletionPolicy: Retain
+  #   UpdateReplacePolicy: Retain
+  #   Properties:
+  #     FunctionName: !Ref STMFetchGTFSVehiclePositions
+
+  # STMFetchGTFSVehiclePositionsAlias:
+  #   Condition: SetSTMFetchGTFSVehiclePositions
+  #   Type: AWS::Lambda::Alias
+  #   DeletionPolicy: Retain
+  #   UpdateReplacePolicy: Retain
+  #   Properties:
+  #     FunctionName: !Ref STMFetchGTFSVehiclePositions
+  #     FunctionVersion: !GetAtt STMFetchGTFSVehiclePositionsVersion.Version
+  #     Name: Live
+
+  # STMFetchGTFSVehiclePositionsStateMachine:
+  #   Type: AWS::Serverless::StateMachine
+  #   Properties:
+  #     DefinitionSubstitutions:
+  #       LambdaFunctionArn: !If [SetSTMFetchGTFSVehiclePositions, !Ref STMFetchGTFSVehiclePositionsAlias, !Join [":", [!GetAtt STMFetchGTFSVehiclePositions.Arn,"Live"]]]
+  #     Definition:
+  #       StartAt: Fetch_GTFS_Vehicles
+  #       States:
+  #         Fetch_GTFS_Vehicles:
+  #           Type: Map
+  #           ItemsPath: $.range(1, 6)  # Will iterate from 1 to 5
+  #           Iterator:
+  #             StartAt: Fetch_GTFS_Vehicle
+  #             States:
+  #               Fetch_GTFS_Vehicle:
+  #                 Type: Task
+  #                 Resource: arn:aws:states:::lambda:invoke
+  #                 Parameters:
+  #                   FunctionName: !If [SetSTMFetchGTFSVehiclePositions, !Ref STMFetchGTFSVehiclePositionsAlias, !Join [":", [!GetAtt STMFetchGTFSVehiclePositions.Arn,"Live"]]]
+  #                   Payload.$: $
+  #                 Retry:
+  #                   - ErrorEquals:
+  #                       - Lambda.ServiceException
+  #                       - Lambda.AWSLambdaException
+  #                       - Lambda.SdkClientException
+  #                       - Lambda.TooManyRequestsException
+  #                     IntervalSeconds: 1
+  #                     MaxAttempts: 3
+  #                     BackoffRate: 2
+  #                 Next: WaitOrEnd
+  #               WaitOrEnd:
+  #                 Type: Choice
+  #                 Choices:
+  #                   - Condition: "Variable('$.iterator') < 5"  # Wait for 4 times
+  #                     Next: Wait10Sec
+  #                   - Condition: "Variable('$.iterator') == 5"  # End the state machine after 5 iterations
+  #                     End: true
+  #               Wait10Sec:
+  #                 Type: Wait
+  #                 Seconds: 10
+  #                 Next: Fetch_GTFS_Vehicles
+  #       Comment: Fetch GTFS Vehicles Positions 5 times per 60 seconds and store in S3 Bucket (EXPRESSS)
+  #     Type: EXPRESS
+  #     Role: !GetAtt StateMachineExecutionRole.Arn
+  #     Logging:
+  #       Destinations:
+  #         - CloudWatchLogsLogGroup:
+  #             LogGroupArn: !GetAtt StateMachineLogGroup.Arn
+  #       IncludeExecutionData: true
+  #       Level: ALL
+
+  # StateMachineLogGroup:
+  #   Type: AWS::Logs::LogGroup
+  #   Properties:
+  #     LogGroupName: /aws/vendedlogs/states/STMStateMachineLogGroup
+  #     RetentionInDays: 30
+
+  # StateMachineScheduler:
+  #   Type: AWS::Events::Rule
+  #   Properties:
+  #     ScheduleExpression: "rate(1 minute)"
+  #     Targets:
+  #       - Arn: !Ref STMFetchGTFSVehiclePositionsStateMachine
+  #         Id: "StateMachineSchedule"
+  #         RoleArn: !GetAtt StateMachineExecutionRole.Arn
+  #         Input: >
+  #           {
+  #             "bucket_name": "monitoring-mtl-stm-gtfs-vehicle-positions",
+  #             "timezone": "America/Montreal"
+  #           }
+            
+  # StateMachineExecutionRole:
+  #   Type: AWS::IAM::Role
+  #   Properties:
+  #     AssumeRolePolicyDocument:
+  #       Version: "2012-10-17"
+  #       Statement:
+  #         - Effect: "Allow"
+  #           Principal:
+  #             Service: "states.amazonaws.com"
+  #           Action: "sts:AssumeRole"
+  #     Policies:
+  #       - PolicyName: "StateMachineExecutionPolicy"
+  #         PolicyDocument:
+  #           Version: "2012-10-17"
+  #           Statement:
+  #             - Effect: "Allow"
+  #               Action:
+  #                 - "lambda:InvokeFunction"
+  #               Resource: !If [SetSTMFetchGTFSVehiclePositions, !Ref STMFetchGTFSVehiclePositionsAlias, !Join [":", [!GetAtt STMFetchGTFSVehiclePositions.Arn,"Live"]]]
+  #       - PolicyName: "CloudWatchLogsPolicy"
+  #         PolicyDocument:
+  #           Version: "2012-10-17"
+  #           Statement:
+  #             - Effect: "Allow"
+  #               Action:
+  #                 - "logs:CreateLogGroup"
+  #                 - "logs:CreateLogStream"
+  #                 - "logs:PutLogEvents"
+  #               Resource: 
+  #                 - !GetAtt StateMachineLogGroup.Arn
+
 ####################### FETCH GBFS STATION_STATUS #######################
+  BIXIFetchGBFSStationStatusRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+  
   BIXIFetchGBFSStationStatus:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      Description: "Fetch Bixi station status data and parse it into a parquet file that is then save on a s3 bucket"
+      Description: "Fetches Bixi station status data and parse it into a parquet file that is then save on a s3 bucket"
       Timeout: 15 # Timeout in seconds
       MemorySize: 256
+      Role: !GetAtt BIXIFetchGBFSStationStatusRole.Arn
       CodeUri: BIXI_Services/BIXI_Fetch_GBFS_Station_Status/
       Handler: main.lambda_handler
       Runtime: python3.9
       Architectures:
         - x86_64
+
+  BIXIFetchGBFSStationStatusPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: BIXIFetchGBFSStationStatusPolicy
+      Roles:
+        - !Ref BIXIFetchGBFSStationStatusRole
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: s3:PutObject
+            Resource: arn:aws:s3:::monitoring-mtl-bixi-gtfs-station-status-dev/*
 
   BIXIFetchGBFSStationStatusVersion:
     Condition: SetBIXIFetchGBFSStationStatus
@@ -120,12 +297,12 @@ Resources:
   BIXIFetchGBFSStationStatusTrigger:
     Type: AWS::Events::Rule
     Properties:
-      Description: "calls BIXIFetchGBFSStationStatus every minute (Same speed as the data is refreshed)"
+      Description: "Calls BIXIFetchGBFSStationStatus every minute (Same speed as the data is refreshed)"
       ScheduleExpression: rate(1 minute)
       State: ENABLED
       Targets:
         - Arn: !If [SetBIXIFetchGBFSStationStatus, !Ref BIXIFetchGBFSStationStatusAlias, !Join [":", [!GetAtt BIXIFetchGBFSStationStatus.Arn,"Live"]]]
-          Id: "TargetFunction"
+          Id: "TargetBixiAlias"
           Input: >-
             {
               "bucket_name": "monitoring-mtl-bixi-gtfs-station-status-dev",
@@ -136,7 +313,7 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref BIXIFetchGBFSStationStatus
+      FunctionName: !If [SetBIXIFetchGBFSStationStatus, !Ref BIXIFetchGBFSStationStatusAlias, !Join [":", [!GetAtt BIXIFetchGBFSStationStatus.Arn,"Live"]]]
       Principal: events.amazonaws.com
       SourceArn: !GetAtt BIXIFetchGBFSStationStatusTrigger.Arn
 
@@ -144,8 +321,9 @@ Resources:
   STMFetchUpdateGTFSStaticfiles:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
+      Description: "Looks if the bus schedule on the bucket is up to date with the STM files and updates it if not"
       Timeout: 60 # Timeout in seconds
-      MemorySize: 1024
+      MemorySize: 2048
       CodeUri: STM_Services/STM_Fetch_Update_GTFS_Static_files/
       Handler: main.lambda_handler
       Runtime: python3.9
@@ -178,6 +356,7 @@ Resources:
   STMFetchUpdateGTFSStaticfilesTrigger:
     Type: AWS::Events::Rule
     Properties:
+      Description: "Calls STMFetchUpdateGTFSStaticfiles every morning at 6 AM"
       ScheduleExpression: cron(0 6 * * ? *)
       State: ENABLED
       Targets:
@@ -193,7 +372,7 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref STMFetchUpdateGTFSStaticfiles
+      FunctionName: !If [SetSTMFetchUpdateGTFSStaticfiles, !Ref STMFetchUpdateGTFSStaticfilesAlias, !Join [":", [!GetAtt STMFetchUpdateGTFSStaticfiles.Arn,"Live"]]]
       Principal: events.amazonaws.com
       SourceArn: !GetAtt STMFetchUpdateGTFSStaticfilesTrigger.Arn
 
@@ -201,6 +380,7 @@ Resources:
   STMFilterDailyGTFStaticfiles:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
+      Description: "Filters daily the information from the static files to keep only the relevant information from the calendar, trips and stop times files from the 'monitoring-mtl-gtfs-static' bucket into the 'monitoring-mtl-gtfs-static-daily' bucket"
       Timeout: 180 # Timeout in seconds
       MemorySize: 2048
       CodeUri: STM_Services/STM_Filter_Daily_GTFS_Static_files/
@@ -235,6 +415,7 @@ Resources:
   STMFilterDailyGTFStaticfilesTrigger:
     Type: AWS::Events::Rule
     Properties:
+      Description: "Calls STMFilterDailyGTFStaticfiles every morning at 8 AM"
       ScheduleExpression: cron(0 8 * * ? *)
       State: ENABLED
       Targets:
@@ -251,7 +432,7 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref STMFilterDailyGTFStaticfiles
+      FunctionName: !If [SetSTMFilterDailyGTFStaticfiles, !Ref STMFilterDailyGTFStaticfilesAlias, !Join [":", [!GetAtt STMFilterDailyGTFStaticfiles.Arn,"Live"]]]
       Principal: events.amazonaws.com
       SourceArn: !GetAtt STMFilterDailyGTFStaticfilesTrigger.Arn
 
@@ -259,6 +440,7 @@ Resources:
   STMAnalyzeDailyStopsData:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
+      Description: "Analyze the delay of a bus for each stops while also calculating the level of occupation and the level of wheelchair accessibility"
       Timeout: 840 # Timeout in seconds
       MemorySize: 8192
       CodeUri: STM_Services/STM_Analyse_Daily_Stops_Data/
@@ -266,22 +448,60 @@ Resources:
       Runtime: python3.9
       Architectures:
         - x86_64
-      Events:
-        Start:
-          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
-          Properties:
-            Path: /AnalyzeDailyStopsData
-            Method: get
       Environment:
           Variables:
             API_URL_STM_TRIP: !Ref ApiUrlStmTrip
             API_URL_STM_VEHICLE: !Ref ApiUrlStmVehicle
             API_KEY_STM: !Ref ApiKeyStm
 
+  STMAnalyzeDailyStopsDataVersion:
+    Condition: SetSTMAnalyzeDailyStopsData
+    Type: AWS::Lambda::Version
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      FunctionName: !Ref STMAnalyzeDailyStopsData
+
+  STMAnalyzeDailyStopsDataAlias:
+    Condition: SetSTMAnalyzeDailyStopsData
+    Type: AWS::Lambda::Alias
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      FunctionName: !Ref STMAnalyzeDailyStopsData
+      FunctionVersion: !GetAtt STMAnalyzeDailyStopsDataVersion.Version
+      Name: Live
+  
+  STMAnalyzeDailyStopsDataTrigger:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "Calls STMAnalyzeDailyStopsData every day at 8:15 AM"
+      ScheduleExpression: cron(15 8 * * ? *)
+      State: ENABLED
+      Targets:
+        - Arn: !If [SetSTMAnalyzeDailyStopsData, !Ref STMAnalyzeDailyStopsDataAlias, !Join [":", [!GetAtt STMAnalyzeDailyStopsData.Arn,"Live"]]]
+          Id: "TargetFunction"
+          Input: >-
+            {
+              "static_bucket": "monitoring-mtl-gtfs-static",
+              "daily_static_bucket": "monitoring-mtl-gtfs-static-daily",
+              "output_bucket": "monitoring-mtl-gtfs-daily-stops-infos",
+              "timezone": "America/Montreal"
+            }
+          
+  STMAnalyzeDailyStopsDataPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !If [SetSTMAnalyzeDailyStopsData, !Ref STMAnalyzeDailyStopsDataAlias, !Join [":", [!GetAtt STMAnalyzeDailyStopsData.Arn,"Live"]]]
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt STMAnalyzeDailyStopsDataTrigger.Arn
+
 ####################### CREATE DAILY STOPS INFO #######################
   STMCreateDailyStopsInfo:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
+      Description: "Creates routes daily for the frontend"
       Timeout: 60 # Timeout in seconds
       MemorySize: 1024
       CodeUri: STM_Services/STM_Create_Daily_Stops_Info/
@@ -289,21 +509,60 @@ Resources:
       Runtime: python3.9
       Architectures:
         - x86_64
-      Events:
-        Start:
-          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
-          Properties:
-            Path: /CreateDailyStopsInfo
-            Method: get
       Environment:
             Variables:
               API_URL_STM_TRIP: !Ref ApiUrlStmTrip
               API_URL_STM_VEHICLE: !Ref ApiUrlStmVehicle
               API_KEY_STM: !Ref ApiKeyStm
 
+  STMCreateDailyStopsInfoVersion:
+    Condition: SetSTMCreateDailyStopsInfo
+    Type: AWS::Lambda::Version
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      FunctionName: !Ref STMCreateDailyStopsInfo
+
+  STMCreateDailyStopsInfoAlias:
+    Condition: SetSTMCreateDailyStopsInfo
+    Type: AWS::Lambda::Alias
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      FunctionName: !Ref STMCreateDailyStopsInfo
+      FunctionVersion: !GetAtt STMCreateDailyStopsInfoVersion.Version
+      Name: Live
+
+  STMCreateDailyStopsInfoTrigger:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "Calls STMCreateDailyStopsInfo every day at 1:15 AM"
+      ScheduleExpression: cron(15 1 * * ? *)
+      State: ENABLED
+      Targets:
+        - Arn: !If [SetSTMCreateDailyStopsInfo, !Ref STMCreateDailyStopsInfoAlias, !Join [":", [!GetAtt STMCreateDailyStopsInfo.Arn,"Live"]]]
+          Id: "TargetFunction"
+          Input: >-
+            {
+              "daily_static_bucket": "monitoring-mtl-gtfs-static-daily",
+              "bucket_vehicle_positions_daily_merge": "monitoring-mtl-stm-gtfs-vehicle-positions-daily-merge",
+              "output_bucket": "monitoring-mtl-stm-analytics",
+              "timezone": "America/Montreal"
+            }
+          
+  STMCreateDailyStopsInfoPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !If [SetSTMCreateDailyStopsInfo, !Ref STMCreateDailyStopsInfoAlias, !Join [":", [!GetAtt STMCreateDailyStopsInfo.Arn,"Live"]]]
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt STMCreateDailyStopsInfoTrigger.Arn
+
+####################### MERGE DAILY VEHICLE POSITIONS #######################
   STMMergeDailyGTFSVechiclePositions:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
+      Description: "Concatenates all Vehicle Positions files into one"
       Timeout: 600 # Timeout in seconds
       MemorySize: 4096
       CodeUri: STM_Services/STM_Merge_Daily_GTFS_VehiclePositions/
@@ -311,17 +570,54 @@ Resources:
       Runtime: python3.9
       Architectures:
         - x86_64
-      Events:
-        Start:
-          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
-          Properties:
-            Path: /MergeDailyGTFSVehiclePositions
-            Method: get
       Environment:
             Variables:
               API_URL_STM_TRIP: !Ref ApiUrlStmTrip
               API_URL_STM_VEHICLE: !Ref ApiUrlStmVehicle
               API_KEY_STM: !Ref ApiKeyStm
+  
+  STMMergeDailyGTFSVechiclePositionsVersion:
+    Condition: SetSTMMergeDailyGTFSVechiclePositions
+    Type: AWS::Lambda::Version
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      FunctionName: !Ref STMMergeDailyGTFSVechiclePositions
+
+  STMMergeDailyGTFSVechiclePositionsAlias:
+    Condition: SetSTMMergeDailyGTFSVechiclePositions
+    Type: AWS::Lambda::Alias
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      FunctionName: !Ref STMMergeDailyGTFSVechiclePositions
+      FunctionVersion: !GetAtt STMMergeDailyGTFSVechiclePositionsVersion.Version
+      Name: Live
+
+  STMMergeDailyGTFSVechiclePositionsTrigger:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "Calls STMMergeDailyGTFSVechiclePositions every day at 11:58 PM"
+      ScheduleExpression: cron(58 23 * * ? *)
+      State: ENABLED
+      Targets:
+        - Arn: !If [SetSTMMergeDailyGTFSVechiclePositions, !Ref STMMergeDailyGTFSVechiclePositionsAlias, !Join [":", [!GetAtt STMMergeDailyGTFSVechiclePositions.Arn,"Live"]]]
+          Id: "TargetFunction"
+          Input: >-
+            {
+              "input_bucket": "monitoring-mtl-stm-gtfs-vehicle-positions",
+              "output_bucket": "monitoring-mtl-stm-gtfs-vehicle-positions-daily-merge",
+              "timezone": "America/Montreal",
+              "workers": 10
+            }
+          
+  STMMergeDailyGTFSVechiclePositionsPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !If [SetSTMMergeDailyGTFSVechiclePositions, !Ref STMMergeDailyGTFSVechiclePositionsAlias, !Join [":", [!GetAtt STMMergeDailyGTFSVechiclePositions.Arn,"Live"]]]
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt STMMergeDailyGTFSVechiclePositionsTrigger.Arn
     
 Outputs:
 
@@ -356,4 +652,3 @@ Outputs:
   STMMergeDailyGTFSVechiclePositionsUpdateStatus:
     Description: "Has STMMergeDailyGTFSVechiclePositions been updated?"
     Value: !If [SetSTMMergeDailyGTFSVechiclePositions, "Yes", "No"]
-
