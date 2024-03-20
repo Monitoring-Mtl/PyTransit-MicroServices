@@ -195,6 +195,13 @@ bucket S3, dans un répertoire correspondant à la date de la journée.
 
 </br>
 
+## État des services
+
+Voir l'[État des Services](status.md) pour les informations de monitoring en temps réel.
+
+</br>
+
+
 <!-- POUR DÉBUTER -->
 ## Pour Débuter
 
