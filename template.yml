@@ -483,9 +483,9 @@ Resources:
           Id: "TargetFunction"
           Input: >-
             {
-              "static_bucket": "monitoring-mtl-gtfs-static",
               "daily_static_bucket": "monitoring-mtl-gtfs-static-daily",
-              "output_bucket": "monitoring-mtl-gtfs-daily-stops-infos",
+              "bucket_vehicle_positions_daily_merge": "monitoring-mtl-stm-gtfs-vehicle-positions-daily-merge",
+              "output_bucket": "monitoring-mtl-stm-analytics",
               "timezone": "America/Montreal"
             }
           
@@ -544,9 +544,9 @@ Resources:
           Id: "TargetFunction"
           Input: >-
             {
+              "static_bucket": "monitoring-mtl-gtfs-static",
               "daily_static_bucket": "monitoring-mtl-gtfs-static-daily",
-              "bucket_vehicle_positions_daily_merge": "monitoring-mtl-stm-gtfs-vehicle-positions-daily-merge",
-              "output_bucket": "monitoring-mtl-stm-analytics",
+              "output_bucket": "monitoring-mtl-gtfs-daily-stops-infos",
               "timezone": "America/Montreal"
             }
           
