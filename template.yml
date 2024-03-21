@@ -275,6 +275,17 @@ Resources:
           - Effect: Allow
             Action: s3:PutObject
             Resource: arn:aws:s3:::monitoring-mtl-bixi-gtfs-station-status-dev/*
+          - Effect: Allow
+            Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Resource: 
+              !Join 
+              - ""
+              - - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/"
+                - !Select [1, !Split [":function:", !GetAtt BIXIFetchGBFSStationStatus.Arn]]
+                - ":*"
 
   BIXIFetchGBFSStationStatusVersion:
     Condition: SetBIXIFetchGBFSStationStatus
