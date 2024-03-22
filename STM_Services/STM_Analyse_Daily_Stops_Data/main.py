@@ -13,7 +13,7 @@ s3 = boto3.client('s3')
 
 def lambda_handler(event, context):
 
-    bucket_static_daily = event['daily_bucket_static']
+    bucket_static_daily = event['daily_static_bucket']
     bucket_vehicle_positions_daily_merge = event['bucket_vehicle_positions_daily_merge']
     output_bucket = event['output_bucket']
     timezone_str = event.get('timezone', 'America/Montreal')  # Default to 'America/Montreal' if not specified
@@ -37,9 +37,9 @@ def lambda_handler(event, context):
     file_name_next_day = next_day.strftime('%Y-%m-%d')
 
     # Define the name of the local files
-    local_static_file_name = f'./tmp/filtered_stop_times_{file_name}.parquet'
-    local_file_name = f'./tmp/Daily_merge_{file_name}.parquet'
-    local_file_name_next_day = f'./tmp/Daily_merge_{file_name_next_day}.parquet'
+    local_static_file_name = f'/tmp/filtered_stop_times_{file_name}.parquet'
+    local_file_name = f'/tmp/Daily_merge_{file_name}.parquet'
+    local_file_name_next_day = f'/tmp/Daily_merge_{file_name_next_day}.parquet'
 
     # Define the folder and file structure on S3
     key_static = f'{folder_name}/filtered_stop_times/filtered_stop_times_{file_name}.parquet'
@@ -104,11 +104,11 @@ def lambda_handler(event, context):
                                 'vehicle_trip_routeId': 'routeId'})
     df_final = df_final.cast({'routeId': pl.Int64})
 
-    df_final.write_parquet(f'./tmp/data_stops_{file_name}.parquet')
+    df_final.write_parquet(f'/tmp/data_stops_{file_name}.parquet')
 
     # Upload the final file back to S3
     output_key = f'{folder_name}/data_stops_{file_name}.parquet'  # Set your output file path here
-    upload_file_from_tmp(f'./tmp/data_stops_{file_name}.parquet', output_bucket, output_key)
+    upload_file_from_tmp(f'/tmp/data_stops_{file_name}.parquet', output_bucket, output_key)
 
     clean_tmp_folder()
 
@@ -127,7 +127,7 @@ def download_file_to_tmp(bucket, key, local_file_name):
         s3.download_file(Bucket=bucket, Key=key, Filename=local_path)
         return local_path
     except Exception as e:
-        print(f'Error downloading file from S3: {e}')
+        print(f'Error downloading file from {bucket}/{key}: {e}')
         return False
 
 
@@ -153,7 +153,7 @@ def upload_file_from_tmp(local_file_name, bucket, key):
 
 
 def clean_tmp_folder():
-    tmp_dir = './tmp'
+    tmp_dir = '/tmp'
     for item in os.listdir(tmp_dir):
         item_path = os.path.join(tmp_dir, item)
         try:
