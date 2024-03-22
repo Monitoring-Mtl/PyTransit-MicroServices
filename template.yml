@@ -28,7 +28,7 @@ Conditions:
   SetSTMAnalyzeDailyStopsData: !Not [!Equals [!Select [1, !Ref UpdateCheck], "0"]]
   SetSTMCreateDailyStopsInfo: !Not [!Equals [!Select [2, !Ref UpdateCheck], "0"]]
   SetSTMFetchGTFSTripUpdates: !Not [!Equals [!Select [3, !Ref UpdateCheck], "0"]]
-  SetSTMFetchGTFSVehiclePositions: !Not [!Equals [!Select [4, !Ref UpdateCheck], "0"]]
+  #SetSTMFetchGTFSVehiclePositions: !Not [!Equals [!Select [4, !Ref UpdateCheck], "0"]]
   SetSTMFetchUpdateGTFSStaticfiles: !Not [!Equals [!Select [5, !Ref UpdateCheck], "0"]]
   SetSTMFilterDailyGTFStaticfiles: !Not [!Equals [!Select [6, !Ref UpdateCheck], "0"]]
   SetSTMMergeDailyGTFSVechiclePositions: !Not [!Equals [!Select [7, !Ref UpdateCheck], "0"]]
@@ -650,7 +650,8 @@ Outputs:
   
   STMFetchGTFSVehiclePositionsUpdateStatus:
     Description: "Has STMFetchGTFSVehiclePositions been updated?"
-    Value: !If [SetSTMFetchGTFSVehiclePositions, "Yes", "No"]
+    Value: "Broken function working on older version until fixed"
+    #Value: !If [SetSTMFetchGTFSVehiclePositions, !Join [" ", ["Yes. It is now version:",!GetAtt STMFetchGTFSVehiclePositionsVersion.Version]], "No"]]
 
   STMFetchUpdateGTFSStaticfilesUpdateStatus:
     Description: "Has STMFetchUpdateGTFSStaticfiles been updated?"
