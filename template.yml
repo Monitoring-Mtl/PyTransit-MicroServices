@@ -83,8 +83,8 @@ Resources:
       ScheduleExpression: rate(15 minutes)
       State: ENABLED
       Targets:
-        - Arn: !If [SetSTMFetchGTFSTripUpdates, !Ref STMFetchGTFSTripUpdatesAlias, !Join [":", [!GetAtt STMFetchGTFSTripUpdates.Arn,"Live"]]]
-          Id: "TargetBixiAlias"
+        - Arn: !GetAtt STMFetchGTFSTripUpdates.Arn
+          Id: "TargetTripUpdates"
           Input: >-
             {
               "bucket_name": "monitoring-mtl-stm-gtfs-trip-updates",
@@ -95,7 +95,7 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !If [SetSTMFetchGTFSTripUpdates, !Ref STMFetchGTFSTripUpdatesAlias, !Join [":", [!GetAtt STMFetchGTFSTripUpdates.Arn,"Live"]]]
+      FunctionName: !GetAtt STMFetchGTFSTripUpdates.Arn
       Principal: events.amazonaws.com
       SourceArn: !GetAtt STMFetchGTFSTripUpdatesTrigger.Arn
 
@@ -312,8 +312,8 @@ Resources:
       ScheduleExpression: rate(1 minute)
       State: ENABLED
       Targets:
-        - Arn: !If [SetBIXIFetchGBFSStationStatus, !Ref BIXIFetchGBFSStationStatusAlias, !Join [":", [!GetAtt BIXIFetchGBFSStationStatus.Arn,"Live"]]]
-          Id: "TargetBixiAlias"
+        - Arn: !GetAtt BIXIFetchGBFSStationStatus.Arn
+          Id: "TargetBixiFetch"
           Input: >-
             {
               "bucket_name": "monitoring-mtl-bixi-gtfs-station-status-dev",
@@ -324,7 +324,7 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !If [SetBIXIFetchGBFSStationStatus, !Ref BIXIFetchGBFSStationStatusAlias, !Join [":", [!GetAtt BIXIFetchGBFSStationStatus.Arn,"Live"]]]
+      FunctionName: !GetAtt BIXIFetchGBFSStationStatus.Arn
       Principal: events.amazonaws.com
       SourceArn: !GetAtt BIXIFetchGBFSStationStatusTrigger.Arn
 
@@ -371,8 +371,8 @@ Resources:
       ScheduleExpression: cron(0 6 * * ? *)
       State: ENABLED
       Targets:
-        - Arn: !If [SetSTMFetchUpdateGTFSStaticfiles, !Ref STMFetchUpdateGTFSStaticfilesAlias, !Join [":", [!GetAtt STMFetchUpdateGTFSStaticfiles.Arn,"Live"]]]
-          Id: "TargetFunction"
+        - Arn: !GetAtt STMFetchUpdateGTFSStaticfiles.Arn
+          Id: "TargetUpdateStaticFiles"
           Input: >-
             {
               "bucket_name": "monitoring-mtl-gtfs-static",
@@ -383,7 +383,7 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !If [SetSTMFetchUpdateGTFSStaticfiles, !Ref STMFetchUpdateGTFSStaticfilesAlias, !Join [":", [!GetAtt STMFetchUpdateGTFSStaticfiles.Arn,"Live"]]]
+      FunctionName: !GetAtt STMFetchUpdateGTFSStaticfiles.Arn
       Principal: events.amazonaws.com
       SourceArn: !GetAtt STMFetchUpdateGTFSStaticfilesTrigger.Arn
 
@@ -430,8 +430,8 @@ Resources:
       ScheduleExpression: cron(0 8 * * ? *)
       State: ENABLED
       Targets:
-        - Arn: !If [SetSTMFilterDailyGTFStaticfiles, !Ref STMFilterDailyGTFStaticfilesAlias, !Join [":", [!GetAtt STMFilterDailyGTFStaticfiles.Arn,"Live"]]]
-          Id: "TargetFunction"
+        - Arn: !GetAtt STMFilterDailyGTFStaticfiles.Arn
+          Id: "TargetFilterStaticFiles"
           Input: >-
             {
               "input_bucket": "monitoring-mtl-gtfs-static",
@@ -443,7 +443,7 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !If [SetSTMFilterDailyGTFStaticfiles, !Ref STMFilterDailyGTFStaticfilesAlias, !Join [":", [!GetAtt STMFilterDailyGTFStaticfiles.Arn,"Live"]]]
+      FunctionName: !GetAtt STMFilterDailyGTFStaticfiles.Arn
       Principal: events.amazonaws.com
       SourceArn: !GetAtt STMFilterDailyGTFStaticfilesTrigger.Arn
 
@@ -486,12 +486,12 @@ Resources:
   STMAnalyzeDailyStopsDataTrigger:
     Type: AWS::Events::Rule
     Properties:
-      Description: "Calls STMAnalyzeDailyStopsData every day at 8:15 AM"
-      ScheduleExpression: cron(15 8 * * ? *)
+      Description: "Calls STMAnalyzeDailyStopsData every day at 0:15 AM"
+      ScheduleExpression: cron(15 0 * * ? *)
       State: ENABLED
       Targets:
-        - Arn: !If [SetSTMAnalyzeDailyStopsData, !Ref STMAnalyzeDailyStopsDataAlias, !Join [":", [!GetAtt STMAnalyzeDailyStopsData.Arn,"Live"]]]
-          Id: "TargetFunction"
+        - Arn: !GetAtt STMAnalyzeDailyStopsData.Arn
+          Id: "TargetAnalyze"
           Input: >-
             {
               "daily_static_bucket": "monitoring-mtl-gtfs-static-daily",
@@ -504,7 +504,7 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !If [SetSTMAnalyzeDailyStopsData, !Ref STMAnalyzeDailyStopsDataAlias, !Join [":", [!GetAtt STMAnalyzeDailyStopsData.Arn,"Live"]]]
+      FunctionName: !GetAtt STMAnalyzeDailyStopsData.Arn
       Principal: events.amazonaws.com
       SourceArn: !GetAtt STMAnalyzeDailyStopsDataTrigger.Arn
 
@@ -551,8 +551,8 @@ Resources:
       ScheduleExpression: cron(15 1 * * ? *)
       State: ENABLED
       Targets:
-        - Arn: !If [SetSTMCreateDailyStopsInfo, !Ref STMCreateDailyStopsInfoAlias, !Join [":", [!GetAtt STMCreateDailyStopsInfo.Arn,"Live"]]]
-          Id: "TargetFunction"
+        - Arn: !GetAtt STMCreateDailyStopsInfo.Arn
+          Id: "TargetCreateDailyStops"
           Input: >-
             {
               "static_bucket": "monitoring-mtl-gtfs-static",
@@ -565,7 +565,7 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !If [SetSTMCreateDailyStopsInfo, !Ref STMCreateDailyStopsInfoAlias, !Join [":", [!GetAtt STMCreateDailyStopsInfo.Arn,"Live"]]]
+      FunctionName: !GetAtt STMCreateDailyStopsInfo.Arn
       Principal: events.amazonaws.com
       SourceArn: !GetAtt STMCreateDailyStopsInfoTrigger.Arn
 
@@ -612,8 +612,8 @@ Resources:
       ScheduleExpression: cron(58 23 * * ? *)
       State: ENABLED
       Targets:
-        - Arn: !If [SetSTMMergeDailyGTFSVechiclePositions, !Ref STMMergeDailyGTFSVechiclePositionsAlias, !Join [":", [!GetAtt STMMergeDailyGTFSVechiclePositions.Arn,"Live"]]]
-          Id: "TargetFunction"
+        - Arn: !GetAtt STMMergeDailyGTFSVechiclePositions.Arn
+          Id: "TargetMergeVehiclePositions"
           Input: >-
             {
               "input_bucket": "monitoring-mtl-stm-gtfs-vehicle-positions",
@@ -626,7 +626,7 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !If [SetSTMMergeDailyGTFSVechiclePositions, !Ref STMMergeDailyGTFSVechiclePositionsAlias, !Join [":", [!GetAtt STMMergeDailyGTFSVechiclePositions.Arn,"Live"]]]
+      FunctionName: !GetAtt STMMergeDailyGTFSVechiclePositions.Arn
       Principal: events.amazonaws.com
       SourceArn: !GetAtt STMMergeDailyGTFSVechiclePositionsTrigger.Arn
     
