@@ -1,0 +1,13 @@
+@startuml locations
+participant ":Worker" as w
+participant "process_locations" as fn
+collections "chunk" as chunk
+database "MongoDb" as m
+
+w -> fn: execute
+activate fn
+fn -> chunk: extract locations
+fn -> fn: build insertion operations
+fn -> m: bulk write operations
+return
+@enduml
