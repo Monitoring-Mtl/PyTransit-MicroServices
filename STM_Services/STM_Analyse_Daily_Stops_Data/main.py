@@ -25,7 +25,7 @@ def lambda_handler(event, context):
 
     # Parse the date string into a datetime object
     date_obj = datetime.strptime(date_str, '%Y%m%d')
-    date_obj = eastern.localize(date_obj)
+    date_obj = eastern.localize(date_obj)- timedelta(days=2)
 
     next_day = date_obj + timedelta(days=1)
 
