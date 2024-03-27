@@ -10,6 +10,9 @@ import polars.selectors as cs
 
 from datetime import datetime, timedelta
 from urllib.request import Request, urlopen
+from pymongo.mongo_client import MongoClient
+from pymongo.server_api import ServerApi
+from gridfs import GridFS
 
 # Set up S3 client
 s3 = boto3.client('s3')
@@ -42,8 +45,21 @@ def get_daily_parquet_file(bucket_name, prefix):
         print('No objects found in the specified prefix.')
     return None
 
-def save_dataframe_to_database(dataframe):
-    print('TODO:')
+def save_dataframe_to_database(event, dataframe_json, date_str):
+    atlas_uri = os.environ['ATLAS_URI']
+    db_name = os.environ['MONGO_DATABASE_NAME']
+    collection_name = event['collection_name']
+    mongoClient = MongoClient(atlas_uri, server_api=ServerApi('1'), tls=True, tlsAllowInvalidCertificates=True)
+    document_name = f'stm_segments_analysis_{date_str}'
+    try:
+        document = { "document_name": document_name, "data": dataframe_json }
+        db = mongoClient[db_name]
+        fs = GridFS(db, collection=collection_name)
+        with fs.new_file(filename=document_name) as fp:
+            fp.write(dataframe_json.encode('utf-8'))
+        print(f"Inserted document with GridFS.")
+    except Exception as e:
+        print(f"Mongo insert returned an error: {e}")
 
 def lambda_handler(event, context):
     # Define the buckets and file paths

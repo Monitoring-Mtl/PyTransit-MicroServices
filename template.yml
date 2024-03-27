@@ -557,6 +557,7 @@ Resources:
           Input: >-
             {
               "input_bucket": "monitoring-mtl-stm-analytics",
+              "collection_name": "monitoring-mtl-stm-segments-analysis"
               "timezone": "America/Montreal"
             }
           

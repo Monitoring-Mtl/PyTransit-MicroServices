@@ -8,8 +8,10 @@ import fastparquet
 import polars as pl
 import polars.selectors as cs
 
-from datetime import datetime, timedelta
-from urllib.request import Request, urlopen
+from datetime import datetime
+from pymongo.mongo_client import MongoClient
+from pymongo.server_api import ServerApi
+from gridfs import GridFS
 
 # Set up S3 client
 s3 = boto3.client('s3', aws_access_key_id=os.environ['aws_access_key_id'], aws_secret_access_key=os.environ['aws_secret_access_key'])
@@ -47,12 +49,28 @@ def get_daily_parquet_file(bucket_name, prefix):
         print('No objects found in the specified prefix.')
     return None
 
-def save_dataframe_to_database(dataframe):
-    print('TODO')
+def save_dataframe_to_database(event, dataframe_json, date_str):
+    atlas_uri = os.environ['ATLAS_URI']
+    db_name = os.environ['MONGO_DATABASE_NAME']
+    collection_name = event['collection_name']
+    mongoClient = MongoClient(atlas_uri, server_api=ServerApi('1'), tls=True, tlsAllowInvalidCertificates=True)
+    document_name = f'stm_segments_analysis_{date_str}'
+    try:
+        document = { "document_name": document_name, "data": dataframe_json }
+        db = mongoClient[db_name]
+        fs = GridFS(db, collection=collection_name)
+        with fs.new_file(filename=document_name) as fp:
+            fp.write(dataframe_json.encode('utf-8'))
+        print(f"Inserted document with GridFS.")
+    except Exception as e:
+        print(f"Mongo insert returned an error: {e}")
 
 def lambda_handler(event, context):
     # Define the buckets and file paths
     stm_analytics_bucket = event['input_bucket']
+    timezone_str = event.get('timezone', 'America/Montreal')  # Default to 'America/Montreal' if not specified
+    eastern = pytz.timezone(timezone_str)
+    date_str = event.get('date', datetime.now(eastern).strftime('%Y%m%d'))
     #test pour 2024/01/01 et 2023/11/02
     daily_data_01 = get_daily_parquet_file(stm_analytics_bucket, '2024/01/01')
     daily_data_01 = daily_data_01.filter(pl.col('offset').is_not_null())
@@ -90,12 +108,12 @@ def lambda_handler(event, context):
     daily_data = daily_data.cast({'offset_difference': pl.Int64})
 
     # Select only relevant columns before saving to database
-    daily_data = daily_data.select(['stop_id', 'previous_stop_id', 'offset_difference'])
-
-    save_dataframe_to_database(daily_data)
+    daily_data = daily_data.select(['stop_id', 'previous_stop_id', 'offset_difference', 'Current_Occupancy', 'arrival_time_unix', 'trip_id'])
+    save_dataframe_to_database(event, daily_data.write_json(), date_str)
 
 if __name__ == '__main__':
     event = {}
+    event['collection_name'] = 'monitoring-mtl-stm-segments-analysis'
     event['input_bucket'] = 'monitoring-mtl-stm-analytics'
     event['output_bucket'] = 'monitoring-mtl-stm-gtfs-vehicle-positions-daily-merge'
     lambda_handler(event, None)
