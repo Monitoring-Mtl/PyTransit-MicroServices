@@ -334,7 +334,7 @@ Resources:
   BixiHistoricDataCheckerLambda:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: checker.handler
+      Handler: main.handler
       Runtime: python3.11
       CodeUri: BIXI_Services/BIXI_Historical_Data_Checker/
       MemorySize: 128
@@ -435,7 +435,7 @@ Resources:
   BixiHistoricDataProcessorLambda:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: processor.handler
+      Handler: main.handler
       Runtime: python3.11
       CodeUri: BIXI_Services/BIXI_Historical_Data_Processor/
       MemorySize: 8192
