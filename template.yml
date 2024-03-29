@@ -22,6 +22,32 @@ Parameters:
     #  - "1"
     #  - "0"
     #  - ""
+  BixiDataUrl:
+    Type: String
+    Default: "https://bixi.com/en/open-data"
+  BixiCdn:
+    Type: String
+    Default: "https://s3.ca-central-1.amazonaws.com/cdn.bixi.com/"
+  MongoDbUri:
+    Type: String
+  BixiDbName:
+    Type: String
+    Default: "test-monitorint-mtl"
+  BixiHistoricUrlsCollection:
+    Type: String
+    Default: "bixi_historic_urls"
+  BixiDefaultZipPath:
+    Type: String
+    Default: "/tmp/data/file.zip"
+  BixiDefaultExtractPath:
+    Type: String
+    Default: "/tmp/data/csv/"
+  BixiLocationCollection:
+    Type: String
+    Default: "station_locations"
+  BixiTripCollection:
+    Type: String
+    Default: "trips"
 
 Conditions:
   SetBIXIFetchGBFSStationStatus: !Not [!Equals [!Select [0, !Ref UpdateCheck], "0"]]
@@ -339,27 +365,12 @@ Resources:
       CodeUri: BIXI_Services/BIXI_Historical_Data_Checker/
       MemorySize: 128
       Timeout: 60
-      Role: !GetAtt BIXIFetchGBFSStationStatusRole.Arn
-      Policies:
-        - AWSLambdaBasicExecutionRole
-        - Version: "2012-10-17"
-          Statement:
-            - Effect: Allow
-              Action:
-                - logs:CreateLogStream
-                - logs:PutLogEvents
-              Resource: "arn:aws:logs:*:*:*"
-      Events:
-        Schedule:
-          Type: Schedule
-          Properties:
-            # TODO: we should decide this together
-            Schedule: cron(0 3 1 * ? *)
+      Role: !GetAtt BixiHistoricDataCheckerRole.Arn
       Environment:
         Variables:
           BIXI_DATA_URL: !Ref BixiDataUrl
           BIXI_CDN: !Ref BixiCdn
-          MONGO_URI: !Ref MongoUri
+          MONGODB_URI: !Ref MongoDbUri
           BIXI_DB_NAME: !Ref BixiDbName
           BIXI_HISTORIC_URLS_COLLECTION: !Ref BixiHistoricUrlsCollection
 
@@ -384,9 +395,6 @@ Resources:
         Version: "2012-10-17"
         Statement:
           - Effect: Allow
-            Action: s3:PutObject
-            Resource: arn:aws:s3:::monitoring-mtl-bixi-gtfs-station-status-dev/*
-          - Effect: Allow
             Action:
               - logs:CreateLogGroup
               - logs:CreateLogStream
@@ -396,40 +404,27 @@ Resources:
               - - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/"
                 - !Select [
                     1,
-                    !Split [":function:", !GetAtt BixiHistoricDataChecker.Arn],
+                    !Split [":function:", !GetAtt BixiHistoricDataCheckerLambda.Arn],
                   ]
                 - ":*"
 
   BixiHistoricDataCheckerVersion:
-    Condition: SetBixiHistoricDataChecker
+    Condition: SetBixiHistoricDataCheckerLambda
     Type: AWS::Lambda::Version
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      FunctionName: !Ref BixiHistoricDataChecker
+      FunctionName: !Ref BixiHistoricDataCheckerLambda
 
   BixiHistoricDataCheckerAlias:
-    Condition: SetBixiHistoricDataChecker
+    Condition: SetBixiHistoricDataCheckerLambda
     Type: AWS::Lambda::Alias
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      FunctionName: !Ref BixiHistoricDataChecker
+      FunctionName: !Ref BixiHistoricDataCheckerLambda
       FunctionVersion: !GetAtt BixiHistoricDataCheckerVersion.Version
       Name: Live
-
-  BixiHistoricDataCheckerPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName:
-        !If [
-          SetBixiHistoricDataChecker,
-          !Ref BixiHistoricDataCheckerAlias,
-          !Join [":", [!GetAtt BixiHistoricDataChecker.Arn, "Live"]],
-        ]
-      Principal: events.amazonaws.com
-      SourceArn: !GetAtt BixiHistoricDataCheckerTrigger.Arn
 
   ####################### BIXI - HISTORIC DATA PROCESSOR #######################
   BixiHistoricDataProcessorLambda:
@@ -442,26 +437,18 @@ Resources:
       EphemeralStorage:
         Size: 3072
       Timeout: 900
-      Policies:
-        - AWSLambdaBasicExecutionRole
-        - Version: "2012-10-17"
-          Statement:
-            - Effect: Allow
-              Action:
-                - logs:CreateLogStream
-                - logs:PutLogEvents
-              Resource: "arn:aws:logs:*:*:*"
+      Role: !GetAtt BixiHistoricDataProcessorRole.Arn
       Environment:
         Variables:
           BIXI_DATA_URL: !Ref BixiDataUrl
           BIXI_CDN: !Ref BixiCdn
-          MONGO_URI: !Ref MongoUri
+          MONGODB_URI: !Ref MongoDbUri
           BIXI_DB_NAME: !Ref BixiDbName
           BIXI_HISTORIC_URLS_COLLECTION: !Ref BixiHistoricUrlsCollection
-          DEFAULT_ZIP_PATH: !Ref DefaultZipPath
-          DEFAULT_EXTRACT_PATH: !Ref DefaultExtractPath
-          LOCATION_COLLECTION: !Ref LocationCollection
-          TRIP_COLLECTION: !Ref TripCollection
+          DEFAULT_ZIP_PATH: !Ref BixiDefaultZipPath
+          DEFAULT_EXTRACT_PATH: !Ref BixiDefaultExtractPath
+          LOCATION_COLLECTION: !Ref BixiLocationCollection
+          TRIP_COLLECTION: !Ref BixiTripCollection
 
   BixiHistoricDataProcessorRole:
     Type: AWS::IAM::Role
@@ -484,9 +471,6 @@ Resources:
         Version: "2012-10-17"
         Statement:
           - Effect: Allow
-            Action: s3:PutObject
-            Resource: arn:aws:s3:::monitoring-mtl-bixi-gtfs-station-status-dev/*
-          - Effect: Allow
             Action:
               - logs:CreateLogGroup
               - logs:CreateLogStream
@@ -498,42 +482,30 @@ Resources:
                     1,
                     !Split [
                       ":function:",
-                      !GetAtt BixiHistoricDataProcessor.Arn,
+                      !GetAtt BixiHistoricDataProcessorLambda.Arn,
                     ],
                   ]
                 - ":*"
 
   BixiHistoricDataProcessorVersion:
-    Condition: SetBixiHistoricDataProcessor
+    Condition: SetBixiHistoricDataProcessorLambda
     Type: AWS::Lambda::Version
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      FunctionName: !Ref BixiHistoricDataProcessor
+      FunctionName: !Ref BixiHistoricDataProcessorLambda
 
   BixiHistoricDataProcessorAlias:
-    Condition: SetBixiHistoricDataProcessor
+    Condition: SetBixiHistoricDataProcessorLambda
     Type: AWS::Lambda::Alias
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      FunctionName: !Ref BixiHistoricDataProcessor
+      FunctionName: !Ref BixiHistoricDataProcessorLambda
       FunctionVersion: !GetAtt BixiHistoricDataProcessorVersion.Version
       Name: Live
-
-  BixiHistoricDataProcessorPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName:
-        !If [
-          SetBixiHistoricDataProcessor,
-          !Ref BixiHistoricDataProcessorAlias,
-          !Join [":", [!GetAtt BixiHistoricDataProcessor.Arn, "Live"]],
-        ]
-      Principal: events.amazonaws.com
-      SourceArn: !GetAtt BixiHistoricDataProcessorTrigger.Arn
-
+  
+  ####################### BIXI - HISTORIC DATA SCHEDULER #######################
   BixiHistoricDataWorkflow:
     Type: AWS::StepFunctions::StateMachine
     Properties:
@@ -586,7 +558,7 @@ Resources:
   StateMachineTrigger:
     Type: AWS::Events::Rule
     Properties:
-      ScheduleExpression: "rate(1 minute)"
+      ScheduleExpression: "cron(0 3 1 * ? *)"
       Targets:
         - Arn: !Ref BixiHistoricDataWorkflow
           Id: "StateMachineTrigger"
@@ -934,7 +906,7 @@ Resources:
       FunctionName: !GetAtt STMMergeDailyGTFSVechiclePositions.Arn
       Principal: events.amazonaws.com
       SourceArn: !GetAtt STMMergeDailyGTFSVechiclePositionsTrigger.Arn
-    
+
 Outputs:
   BIXIFetchGBFSStationStatusUpdateStatus:
     Description: "Has BIXIFetchGBFSStationStatus been updated?"

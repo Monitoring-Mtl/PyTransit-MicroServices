@@ -6,9 +6,9 @@ from pymongo import MongoClient
 
 BIXI_DATA_URL = os.getenv("BIXI_DATA_URL", "https://bixi.com/en/open-data")
 BIXI_CDN = os.getenv("BIXI_CDN", "https://s3.ca-central-1.amazonaws.com/cdn.bixi.com/")
-MONGO_URI = os.getenv("MONGO_URI", "")
+MONGODB_URI = os.getenv("MONGODB_URI", "")
 BIXI_DB_NAME = os.getenv("BIXI_DB_NAME", "")
-URL_COLLECTION = os.getenv("BIXI_HISTORIC_URLS_COLLECTION", "bixi_historic_urls")
+BIXI_URL_COLLECTION = os.getenv("BIXI_HISTORIC_URLS_COLLECTION", "bixi_historic_urls")
 
 
 def scrape_bixi_historic_data_urls(url=BIXI_DATA_URL, bixi_cdn=BIXI_CDN):
@@ -20,9 +20,9 @@ def scrape_bixi_historic_data_urls(url=BIXI_DATA_URL, bixi_cdn=BIXI_CDN):
 
 def check_new_data(
     scraped_urls,
-    mongo_uri=MONGO_URI,
+    mongo_uri=MONGODB_URI,
     bixi_db_name=BIXI_DB_NAME,
-    url_collection=URL_COLLECTION,
+    url_collection=BIXI_URL_COLLECTION,
 ):
     client = MongoClient(mongo_uri)
     db = client[bixi_db_name]
