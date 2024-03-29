@@ -32,6 +32,8 @@ Conditions:
   SetSTMFetchUpdateGTFSStaticfiles: !Not [!Equals [!Select [5, !Ref UpdateCheck], "0"]]
   SetSTMFilterDailyGTFStaticfiles: !Not [!Equals [!Select [6, !Ref UpdateCheck], "0"]]
   SetSTMMergeDailyGTFSVechiclePositions: !Not [!Equals [!Select [7, !Ref UpdateCheck], "0"]]
+  SetBixiHistoricDataCheckerLambda: !Not [!Equals [!Select [8, !Ref UpdateCheck], "0"]]
+  SetBixiHistoricDataProcessorLambda: !Not [!Equals [!Select [9, !Ref UpdateCheck], "0"]]
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
@@ -327,6 +329,309 @@ Resources:
       FunctionName: !GetAtt BIXIFetchGBFSStationStatus.Arn
       Principal: events.amazonaws.com
       SourceArn: !GetAtt BIXIFetchGBFSStationStatusTrigger.Arn
+
+  ####################### BIXI - CHECK NEW HISTORIC DATA #######################
+  BixiHistoricDataCheckerLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: checker.handler
+      Runtime: python3.11
+      CodeUri: BIXI_Services/BIXI_Historical_Data_Checker/
+      MemorySize: 128
+      Timeout: 60
+      Role: !GetAtt BIXIFetchGBFSStationStatusRole.Arn
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: "arn:aws:logs:*:*:*"
+      Events:
+        Schedule:
+          Type: Schedule
+          Properties:
+            # TODO: we should decide this together
+            Schedule: cron(0 3 1 * ? *)
+      Environment:
+        Variables:
+          BIXI_DATA_URL: !Ref BixiDataUrl
+          BIXI_CDN: !Ref BixiCdn
+          MONGO_URI: !Ref MongoUri
+          BIXI_DB_NAME: !Ref BixiDbName
+          BIXI_HISTORIC_URLS_COLLECTION: !Ref BixiHistoricUrlsCollection
+
+  BixiHistoricDataCheckerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+
+  BixiHistoricDataCheckerPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: BixiHistoricDataCheckerPolicy
+      Roles:
+        - !Ref BixiHistoricDataCheckerRole
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: s3:PutObject
+            Resource: arn:aws:s3:::monitoring-mtl-bixi-gtfs-station-status-dev/*
+          - Effect: Allow
+            Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Resource: !Join
+              - ""
+              - - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/"
+                - !Select [
+                    1,
+                    !Split [":function:", !GetAtt BixiHistoricDataChecker.Arn],
+                  ]
+                - ":*"
+
+  BixiHistoricDataCheckerVersion:
+    Condition: SetBixiHistoricDataChecker
+    Type: AWS::Lambda::Version
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      FunctionName: !Ref BixiHistoricDataChecker
+
+  BixiHistoricDataCheckerAlias:
+    Condition: SetBixiHistoricDataChecker
+    Type: AWS::Lambda::Alias
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      FunctionName: !Ref BixiHistoricDataChecker
+      FunctionVersion: !GetAtt BixiHistoricDataCheckerVersion.Version
+      Name: Live
+
+  BixiHistoricDataCheckerPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        !If [
+          SetBixiHistoricDataChecker,
+          !Ref BixiHistoricDataCheckerAlias,
+          !Join [":", [!GetAtt BixiHistoricDataChecker.Arn, "Live"]],
+        ]
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt BixiHistoricDataCheckerTrigger.Arn
+
+  ####################### BIXI - HISTORIC DATA PROCESSOR #######################
+  BixiHistoricDataProcessorLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: processor.handler
+      Runtime: python3.11
+      CodeUri: BIXI_Services/BIXI_Historical_Data_Processor/
+      MemorySize: 8192
+      EphemeralStorage:
+        Size: 3072
+      Timeout: 900
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: "arn:aws:logs:*:*:*"
+      Environment:
+        Variables:
+          BIXI_DATA_URL: !Ref BixiDataUrl
+          BIXI_CDN: !Ref BixiCdn
+          MONGO_URI: !Ref MongoUri
+          BIXI_DB_NAME: !Ref BixiDbName
+          BIXI_HISTORIC_URLS_COLLECTION: !Ref BixiHistoricUrlsCollection
+          DEFAULT_ZIP_PATH: !Ref DefaultZipPath
+          DEFAULT_EXTRACT_PATH: !Ref DefaultExtractPath
+          LOCATION_COLLECTION: !Ref LocationCollection
+          TRIP_COLLECTION: !Ref TripCollection
+
+  BixiHistoricDataProcessorRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+
+  BixiHistoricDataProcessorPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: BixiHistoricDataProcessorPolicy
+      Roles:
+        - !Ref BixiHistoricDataProcessorRole
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: s3:PutObject
+            Resource: arn:aws:s3:::monitoring-mtl-bixi-gtfs-station-status-dev/*
+          - Effect: Allow
+            Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Resource: !Join
+              - ""
+              - - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/"
+                - !Select [
+                    1,
+                    !Split [
+                      ":function:",
+                      !GetAtt BixiHistoricDataProcessor.Arn,
+                    ],
+                  ]
+                - ":*"
+
+  BixiHistoricDataProcessorVersion:
+    Condition: SetBixiHistoricDataProcessor
+    Type: AWS::Lambda::Version
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      FunctionName: !Ref BixiHistoricDataProcessor
+
+  BixiHistoricDataProcessorAlias:
+    Condition: SetBixiHistoricDataProcessor
+    Type: AWS::Lambda::Alias
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      FunctionName: !Ref BixiHistoricDataProcessor
+      FunctionVersion: !GetAtt BixiHistoricDataProcessorVersion.Version
+      Name: Live
+
+  BixiHistoricDataProcessorPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        !If [
+          SetBixiHistoricDataProcessor,
+          !Ref BixiHistoricDataProcessorAlias,
+          !Join [":", [!GetAtt BixiHistoricDataProcessor.Arn, "Live"]],
+        ]
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt BixiHistoricDataProcessorTrigger.Arn
+
+  BixiHistoricDataWorkflow:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      # AI generated logic. tested. but needs another review.
+      DefinitionString: !Sub |
+        {
+          "StartAt": "CheckData",
+          "States": {
+            "CheckData": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Parameters": {
+                "FunctionName": "${BixiHistoricDataCheckerLambda.Arn}",
+                "Payload": {
+                  "Input.$": "$"
+                }
+              },
+              "Next": "IsProcessingNeeded"
+            },
+            "IsProcessingNeeded": {
+              "Type" : "Choice",
+              "Choices": [
+                {
+                  "Variable": "$.Payload.process",
+                  "BooleanEquals": true,
+                  "Next": "ProcessData"
+                }
+              ],
+              "Default": "NoOperation"
+            },
+            "ProcessData": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Parameters": {
+                "FunctionName": "${BixiHistoricDataProcessorLambda.Arn}",
+                "Payload": {
+                  "urls.$": "$.Payload.urls"
+                }
+              },
+              "End": true
+            },
+            "NoOperation": {
+              "Type": "Pass",
+              "End": true
+            }
+          }
+        }
+      RoleArn: !GetAtt StepFunctionsExecutionRole.Arn
+
+  StateMachineTrigger:
+    Type: AWS::Events::Rule
+    Properties:
+      ScheduleExpression: "rate(1 minute)"
+      Targets:
+        - Arn: !Ref BixiHistoricDataWorkflow
+          Id: "StateMachineTrigger"
+          RoleArn: !GetAtt EventsRole.Arn
+
+  EventsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: StepFunctionsExecution
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: states:StartExecution
+                Resource: !Ref BixiHistoricDataWorkflow
+
+  StepFunctionsExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: states.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: LambdaInvocation
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource:
+                  - !GetAtt BixiHistoricDataCheckerLambda.Arn
+                  - !GetAtt BixiHistoricDataProcessorLambda.Arn
 
 ####################### FETCH URL STATIC FILES #######################
   STMFetchUpdateGTFSStaticfiles:
@@ -631,10 +936,17 @@ Resources:
       SourceArn: !GetAtt STMMergeDailyGTFSVechiclePositionsTrigger.Arn
     
 Outputs:
-
   BIXIFetchGBFSStationStatusUpdateStatus:
     Description: "Has BIXIFetchGBFSStationStatus been updated?"
     Value: !If [SetBIXIFetchGBFSStationStatus, !Join [" ", ["Yes. It is now version:",!GetAtt BIXIFetchGBFSStationStatusVersion.Version]], "No"]
+
+  BixiHistoricDataCheckerLambda:
+    Description: "Lambda function to check for new data."
+    Value: !GetAtt BixiHistoricDataCheckerLambda.Arn
+
+  BixiHistoricDataProcessorLambda:
+    Description: "Lambda function to process and load new data."
+    Value: !GetAtt BixiHistoricDataProcessorLambda.Arn
 
   STMAnalyzeDailyStopsDataUpdateStatus:
     Description: "Has STMAnalyzeDailyStopsData been updated?"
