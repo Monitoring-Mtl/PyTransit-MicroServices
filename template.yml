@@ -83,7 +83,7 @@ Resources:
   STMFetchGTFSTripUpdatesTrigger:
     Type: AWS::Events::Rule
     Properties:
-      Description: "Calls STMFetchGTFSTripUpdates every 15 minute"
+      Description: "Calls STMFetchGTFSTripUpdates every 15 minutes"
       ScheduleExpression: rate(15 minutes)
       State: ENABLED
       Targets:
@@ -374,7 +374,7 @@ Resources:
   STMFetchUpdateGTFSStaticfilesTrigger:
     Type: AWS::Events::Rule
     Properties:
-      Description: "Calls STMFetchUpdateGTFSStaticfiles every morning at 6 AM"
+      Description: "Calls STMFetchUpdateGTFSStaticfiles every morning at 6 AM (UTC)"
       ScheduleExpression: cron(0 6 * * ? *)
       State: ENABLED
       Targets:
@@ -434,7 +434,7 @@ Resources:
   STMFilterDailyGTFStaticfilesTrigger:
     Type: AWS::Events::Rule
     Properties:
-      Description: "Calls STMFilterDailyGTFStaticfiles every morning at 8 AM"
+      Description: "Calls STMFilterDailyGTFStaticfiles every morning at 8 AM (UTC)"
       ScheduleExpression: cron(0 8 * * ? *)
       State: ENABLED
       Targets:
@@ -495,7 +495,7 @@ Resources:
   STMAnalyzeDailyStopsDataTrigger:
     Type: AWS::Events::Rule
     Properties:
-      Description: "Calls STMAnalyzeDailyStopsData every day at 0:15 AM"
+      Description: "Calls STMAnalyzeDailyStopsData every day at 0:15 AM (UTC)"
       ScheduleExpression: cron(15 0 * * ? *)
       State: ENABLED
       Targets:
@@ -557,7 +557,7 @@ Resources:
   STMCreateDailyStopsInfoTrigger:
     Type: AWS::Events::Rule
     Properties:
-      Description: "Calls STMCreateDailyStopsInfo every day at 1:15 AM"
+      Description: "Calls STMCreateDailyStopsInfo every day at 1:15 AM (UTC)"
       ScheduleExpression: cron(15 1 * * ? *)
       State: ENABLED
       Targets:
@@ -619,7 +619,7 @@ Resources:
   STMMergeDailyGTFSVechiclePositionsTrigger:
     Type: AWS::Events::Rule
     Properties:
-      Description: "Calls STMMergeDailyGTFSVechiclePositions every day at 11:58 PM"
+      Description: "Calls STMMergeDailyGTFSVechiclePositions every day at 11:58 PM (UTC)"
       ScheduleExpression: cron(58 23 * * ? *)
       State: ENABLED
       Targets:
