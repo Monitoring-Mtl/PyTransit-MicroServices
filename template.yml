@@ -374,8 +374,8 @@ Resources:
   STMFetchUpdateGTFSStaticfilesTrigger:
     Type: AWS::Events::Rule
     Properties:
-      Description: "Calls STMFetchUpdateGTFSStaticfiles every morning at 6 AM (UTC)"
-      ScheduleExpression: cron(0 6 * * ? *)
+      Description: "Calls STMFetchUpdateGTFSStaticfiles every morning at 5:15 AM (UTC)"
+      ScheduleExpression: cron(15 5 * * ? *)
       State: ENABLED
       Targets:
         - Arn: !GetAtt STMFetchUpdateGTFSStaticfiles.Arn
@@ -434,8 +434,8 @@ Resources:
   STMFilterDailyGTFStaticfilesTrigger:
     Type: AWS::Events::Rule
     Properties:
-      Description: "Calls STMFilterDailyGTFStaticfiles every morning at 8 AM (UTC)"
-      ScheduleExpression: cron(0 8 * * ? *)
+      Description: "Calls STMFilterDailyGTFStaticfiles every morning at 5:30 AM (UTC)"
+      ScheduleExpression: cron(30 5 * * ? *)
       State: ENABLED
       Targets:
         - Arn: !GetAtt STMFilterDailyGTFStaticfiles.Arn
@@ -495,8 +495,8 @@ Resources:
   STMAnalyzeDailyStopsDataTrigger:
     Type: AWS::Events::Rule
     Properties:
-      Description: "Calls STMAnalyzeDailyStopsData every day at 0:15 AM (UTC)"
-      ScheduleExpression: cron(15 0 * * ? *)
+      Description: "Calls STMAnalyzeDailyStopsData every day at 6 AM (UTC)"
+      ScheduleExpression: cron(0 6 * * ? *)
       State: ENABLED
       Targets:
         - Arn: !GetAtt STMAnalyzeDailyStopsData.Arn
@@ -557,8 +557,8 @@ Resources:
   STMCreateDailyStopsInfoTrigger:
     Type: AWS::Events::Rule
     Properties:
-      Description: "Calls STMCreateDailyStopsInfo every day at 1:15 AM (UTC)"
-      ScheduleExpression: cron(15 1 * * ? *)
+      Description: "Calls STMCreateDailyStopsInfo every day at 5:45 AM (UTC)"
+      ScheduleExpression: cron(45 5 * * ? *)
       State: ENABLED
       Targets:
         - Arn: !GetAtt STMCreateDailyStopsInfo.Arn
@@ -619,8 +619,8 @@ Resources:
   STMMergeDailyGTFSVechiclePositionsTrigger:
     Type: AWS::Events::Rule
     Properties:
-      Description: "Calls STMMergeDailyGTFSVechiclePositions every day at 11:58 PM (UTC)"
-      ScheduleExpression: cron(58 23 * * ? *)
+      Description: "Calls STMMergeDailyGTFSVechiclePositions every day at 5:05 AM (UTC)"
+      ScheduleExpression: cron(5 5 * * ? *)
       State: ENABLED
       Targets:
         - Arn: !GetAtt STMMergeDailyGTFSVechiclePositions.Arn
