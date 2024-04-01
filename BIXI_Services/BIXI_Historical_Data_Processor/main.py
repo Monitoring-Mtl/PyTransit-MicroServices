@@ -1,6 +1,7 @@
 import asyncio
 import os
 import traceback
+from urllib.parse import urlparse, urlunparse
 import zipfile
 from io import BytesIO
 
@@ -118,7 +119,11 @@ async def get_highest_starttimems(col):
     return doc["STARTTIMEMS"] if doc else None
 
 
-def extract(url, path):
+def extract(url: str, bixi_cdn: str, path):
+    # fix for "Full server-side request forgery" security warning
+    url_parsed = urlparse(url)
+    bixi_cdn_parsed = urlparse(bixi_cdn)
+    url = urlunparse((bixi_cdn_parsed.scheme, bixi_cdn_parsed.netloc, url_parsed.path, '', '', ''))
     print("start download and extract", url)
     with requests.get(url) as r:
         r.raise_for_status()
@@ -130,7 +135,7 @@ def extract(url, path):
             print("download and extract completed successfully.")
     if not extracted:
         raise Exception("No file extracted.")
-    return [os.path.join(path, file) for file in extracted if file.endswith(".csv")]
+    return [os.path.abspath(file) for file in extracted if file.endswith(".csv")]
 
 
 async def transform_load(
@@ -145,6 +150,10 @@ async def transform_load(
     q = asyncio.Queue(q_size)
     workers = [asyncio.create_task(worker(q)) for _ in range(concurrency)]
     for file in csv_files:
+        file = os.path.abspath(file)
+        if not file.startswith(os.getcwd()):
+            print(f"Access denied: {file}")
+            continue
         # ensure file exists
         if not os.path.exists(file):
             print(file, "doesn't exist.")
@@ -175,7 +184,9 @@ async def etl(url_item):
     client = AsyncIOMotorClient(os.environ["ATLAS_URI"])
     db = client[os.environ["MONGO_DATABASE_NAME"]]
     # extract
-    files = extract(url, os.environ["BIXI_DEFAULT_EXTRACT_PATH"])
+    files = extract(
+        url, os.environ["BIXI_CDN"], os.environ["BIXI_DEFAULT_EXTRACT_PATH"]
+    )
     # transform and load
     await transform_load(
         files,
@@ -188,6 +199,10 @@ async def etl(url_item):
     # cleaning up
     await save_url(db[os.environ["BIXI_URL_COLLECTION"]], url, year)
     for file_path in files:
+        file_path = os.path.abspath(file_path)
+        if not file_path.startswith(os.getcwd()):
+            print(f"Access denied: {file_path}")
+            continue
         os.remove(file_path)
     return file_path
 

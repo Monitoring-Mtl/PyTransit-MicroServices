@@ -74,7 +74,7 @@ class TestBixiDataScraper(unittest.TestCase):
         )
         self.assertEqual(new_data, expected_new_data)
 
-    @patch.dict(os.environ, MOCK_ENVIRON)
+    @patch.dict("os.environ", MOCK_ENVIRON)
     @patch("BIXI_Services.BIXI_Historical_Data_Checker.main.check_new_data")
     @patch(
         "BIXI_Services.BIXI_Historical_Data_Checker.main.scrape_bixi_historic_data_urls"
@@ -89,7 +89,7 @@ class TestBixiDataScraper(unittest.TestCase):
         result = handler(None, None)
         self.assertEqual(result, expected_result)
 
-    @patch.dict(os.environ, MOCK_ENVIRON)
+    @patch.dict("os.environ", MOCK_ENVIRON)
     @patch("BIXI_Services.BIXI_Historical_Data_Checker.main.check_new_data")
     @patch(
         "BIXI_Services.BIXI_Historical_Data_Checker.main.scrape_bixi_historic_data_urls"

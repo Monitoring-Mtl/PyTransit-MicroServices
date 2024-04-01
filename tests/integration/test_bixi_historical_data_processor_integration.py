@@ -10,7 +10,7 @@ from BIXI_Services.BIXI_Historical_Data_Processor.main import (
     transform_load,
 )
 
-@patch.dict(os.environ, {"MONGO_DATABASE_NAME": "test-monitoring-mtl"}, clear=False)
+@patch.dict("os.environ", {"MONGO_DATABASE_NAME": "test-monitoring-mtl"}, clear=False)
 class TestTransformLoadIntegration(IsolatedAsyncioTestCase):
     """Testing the transform_load function's integration with the database. Depends on 
     test csv files in ./test_files."""

@@ -60,9 +60,7 @@ MOCK_ENVIRON = {
 
 
 class TestBixiHistoricalDataProcessor(TestCase):
-    @patch("os.environ", {})
     def test_handler_returns_error_for_missing_urls_parameter(self):
-        assert os.getenv("ATLAS_URI") is None
         result = handler({}, {})
         self.assertEqual(result["status"], "Error")
 
@@ -108,6 +106,13 @@ class TestBixiHistoricalDataProcessor(TestCase):
 
 
 class TestBixiHistoricalDataProcessorAsync(IsolatedAsyncioTestCase):
+    def setUp(self):
+        self.original_environ = os.environ.copy()
+        os.environ.update(MOCK_ENVIRON)
+
+    def tearDown(self):
+        os.environ = self.original_environ
+
     async def test_process_locations_with_valid_data(self):
         mock_collection = MagicMock()
         mock_collection.bulk_write = AsyncMock()
@@ -152,9 +157,6 @@ class TestBixiHistoricalDataProcessorAsync(IsolatedAsyncioTestCase):
         await process_trips(EMPTY_CHUNK, mock_collection)
         mock_collection.bulk_write.assert_not_awaited()
 
-
-class TestETL(IsolatedAsyncioTestCase):
-    @patch.dict(os.environ, MOCK_ENVIRON)
     @patch("os.remove")
     @patch("BIXI_Services.BIXI_Historical_Data_Processor.main.save_url")
     @patch("BIXI_Services.BIXI_Historical_Data_Processor.main.transform_load")
@@ -169,7 +171,7 @@ class TestETL(IsolatedAsyncioTestCase):
         assert os.environ["ATLAS_URI"] == "test_mongodb_uri"
         url_item = ("http://example.com/data.zip", "2020")
 
-        mock_extract.return_value = ["/tmp/file1.csv", "/tmp/file2.csv"]
+        mock_extract.return_value = ["file1.csv", "file2.csv"]
 
         with patch(
             "BIXI_Services.BIXI_Historical_Data_Processor.main.AsyncIOMotorClient"
@@ -179,9 +181,11 @@ class TestETL(IsolatedAsyncioTestCase):
 
             await etl(url_item)
 
-            mock_extract.assert_called_once_with("http://example.com/data.zip", "/tmp/")
+            mock_extract.assert_called_once_with(
+                "http://example.com/data.zip", "test_cdn", "/tmp/"
+            )
             mock_transform_load.assert_called_once_with(
-                ["/tmp/file1.csv", "/tmp/file2.csv"],
+                ["file1.csv", "file2.csv"],
                 mock_db["location_collection"],
                 mock_db["trip_collection"],
                 1,
@@ -192,12 +196,13 @@ class TestETL(IsolatedAsyncioTestCase):
                 mock_db["BIXI_URL_COLLECTION"], "http://example.com/data.zip", "2020"
             )
             mock_remove.assert_has_calls(
-                [call("/tmp/file1.csv"), call("/tmp/file2.csv")], any_order=True
+                [
+                    call(os.path.abspath("file1.csv")),
+                    call(os.path.abspath("file2.csv")),
+                ],
+                any_order=True,
             )
 
-
-class TestMain(IsolatedAsyncioTestCase):
-    @patch.dict(os.environ, MOCK_ENVIRON)
     @patch("BIXI_Services.BIXI_Historical_Data_Processor.main.etl")
     async def test_main(
         self,
