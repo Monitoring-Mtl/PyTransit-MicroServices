@@ -1,0 +1,21 @@
+STARTSTATIONNAME,STARTSTATIONARRONDISSEMENT,STARTSTATIONLATITUDE,STARTSTATIONLONGITUDE,ENDSTATIONNAME,ENDSTATIONARRONDISSEMENT,ENDSTATIONLATITUDE,ENDSTATIONLONGITUDE,STARTTIMEMS,ENDTIMEMS
+McTavish / Sherbrooke,Ville-Marie,45.502813,-73.576024,McTavish / Sherbrooke,Ville-Marie,45.502813,-73.576024,1709206421726,1709206457524.0
+de l'Hôtel-de-Ville / Rachel,Le Plateau-Mont-Royal,45.5198966,-73.5801065,St-Denis / de Maisonneuve,Ville-Marie,45.514404,-73.561919,1709209139280,1709209561294.0
+St-Hubert / de Maisonneuve (nord),Ville-Marie,45.5161321,-73.5604969,de la Commune / St-Sulpice,Ville-Marie,45.504242,-73.55347,1709209733917,1709210345768.0
+Berri / Rachel,Le Plateau-Mont-Royal,45.522719,-73.577204,Berri / Rachel,Le Plateau-Mont-Royal,45.522719,-73.577204,1709210202902,1709210223533.0
+Métro Atwater (Atwater / Ste-Catherine),Ville-Marie,45.489476,-73.584566,Robert-Bourassa / René-Lévesque,Ville-Marie,45.5021829,-73.5682538,1709212007486,1709212865313.0
+Square Viger (Berri / Viger),Ville-Marie,45.5122121,-73.5546289,Place du Canada (Peel / des Canadiens-de-Montréal),Ville-Marie,45.4978835,-73.5685676,1709212476532,1709213126382.0
+Square Victoria (Viger / du Square-Victoria),Ville-Marie,45.50206,-73.56295,Duke / Nazareth,Ville-Marie,45.4957224,-73.5546134,1709212853425,1709213285012.0
+Parc St-Henri (Laporte / Guay),Le Sud-Ouest,45.4801338,-73.5859081,Smith / Peel,Le Sud-Ouest,-1.0,-1.0,1709213962787,1709214850252.0
+de Maisonneuve / Mackay,Ville-Marie,45.496496,-73.5787037,Place du Canada (Peel / des Canadiens-de-Montréal),Ville-Marie,45.4978835,-73.5685676,1709214228943,1709214494242.0
+Georges-Vanier / Notre-Dame,Le Sud-Ouest,45.485048,-73.571963,St-Antoine / de la Montagne,Ville-Marie,45.4953717,-73.5685891,1709214571711,1709215006214.0
+Métro Peel (de Maisonneuve / Stanley),Ville-Marie,45.50038,-73.57507,Peel / Notre-Dame,Ville-Marie,45.4954469,-73.5632944,1709215223653,1709215508191.0
+Berri / Rachel,Le Plateau-Mont-Royal,45.522719,-73.577204,Métro Acadie (de l'Acadie / Beaumont),Villeray - Saint-Michel - Parc-Extension,45.523575,-73.623443,1709215907893,1709217608672.0
+Notre-Dame / St-Gabriel,Ville-Marie,45.507144,-73.555119,St-Jacques / McGill,Ville-Marie,45.501441,-73.560144,1709216916709,1709217166824.0
+Molson / Wiliam-Tremblay,Rosemont - La Petite-Patrie,45.5416028,-73.5649607,Métro Joliette  (Hochelaga / Joliette),Mercier - Hochelaga-Maisonneuve,45.5469919,-73.5511534,1709219838066,1709220270811.0
+St-Grégoire / Christophe-Colomb,Le Plateau-Mont-Royal,45.5325974,-73.5901111,St-Hubert / du Mont-Royal,Le Plateau-Mont-Royal,45.5257109,-73.581284,1709220412969,1709220760408.0
+Métro Joliette  (Hochelaga / Joliette),Mercier - Hochelaga-Maisonneuve,45.5469919,-73.5511534,Aylwin / Ontario,Mercier - Hochelaga-Maisonneuve,45.544284,-73.54534,1709221649825,1709222458330.0
+de l'Hôtel-de-Ville / Rachel,Le Plateau-Mont-Royal,45.5198966,-73.5801065,de Maisonneuve / Aylmer (est),Ville-Marie,45.505386,-73.570432,1709225504200,1709226035517.0
+Métro Laurier (Berri / St-Joseph),Le Plateau-Mont-Royal,45.527231,-73.586726,Berri / Rachel,Le Plateau-Mont-Royal,45.522719,-73.577204,1709226336066,1709226809792.0
+Cathcart / McGill College,Ville-Marie,45.5011877,-73.5704549,Métro Peel (de Maisonneuve / Stanley),Ville-Marie,45.50038,-73.57507,1709226370240,1709226556655.0
+St-Viateur / Casgrain,Le Plateau-Mont-Royal,45.5271166,-73.5977359,St-Hubert / du Mont-Royal,Le Plateau-Mont-Royal,45.5257109,-73.581284,1709228260286,1709228699707.0
