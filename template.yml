@@ -22,33 +22,50 @@ Parameters:
     #  - "1"
     #  - "0"
     #  - ""
-  BixiDataUrl:
+  AtlasUri:
+    Description: "MongoDB Atlas connection URI."
     Type: String
-    Default: "https://bixi.com/en/open-data"
-  BixiCdn:
+  MongoDatabaseName:
+    Description: "Name of the MongoDB database."
     Type: String
-    Default: "https://s3.ca-central-1.amazonaws.com/cdn.bixi.com/"
-  MongoDbUri:
+    Default: "test-monitoring-mtl"
+  BixiUrlCollection:
+    Description: "Name of the collection for storing BIXI data URLs."
     Type: String
-  BixiDbName:
-    Type: String
-    Default: "test-monitorint-mtl"
-  BixiHistoricUrlsCollection:
-    Type: String
-    Default: "bixi_historic_urls"
-  BixiDefaultZipPath:
-    Type: String
-    Default: "/tmp/data/file.zip"
-  BixiDefaultExtractPath:
-    Type: String
-    Default: "/tmp/data/csv/"
+    Default: "historic_data_urls"
   BixiLocationCollection:
+    Description: "Name of the collection for storing BIXI station location data."
     Type: String
     Default: "station_locations"
   BixiTripCollection:
+    Description: "Name of the collection for storing BIXI trip data."
     Type: String
     Default: "trips"
-
+  BixiDataUrl:
+    Description: "URL for BIXI open data."
+    Type: String
+    Default: "https://bixi.com/en/open-data"
+  BixiCdn:
+    Description: "CDN URL for BIXI data."
+    Type: String
+    Default: "https://s3.ca-central-1.amazonaws.com/cdn.bixi.com/"
+  BixiDefaultExtractPath:
+    Description: "Default path for extracting BIXI data."
+    Type: String
+    Default: "/tmp/data/"
+  BixiChunkSize:
+    Description: "Chunk size for processing BIXI data."
+    Type: Number
+    Default: "250000"
+  BixiConcurrency:
+    Description: "Concurrency level for processing BIXI data."
+    Type: Number
+    Default: "4"
+  BixiQueueSize:
+    Description: "Size of the queue for processing BIXI data."
+    Type: Number
+    Default: "1"
+  
 Conditions:
   SetBIXIFetchGBFSStationStatus: !Not [!Equals [!Select [0, !Ref UpdateCheck], "0"]]
   SetSTMAnalyzeDailyStopsData: !Not [!Equals [!Select [1, !Ref UpdateCheck], "0"]]
@@ -358,6 +375,7 @@ Resources:
 
   ####################### BIXI - CHECK NEW HISTORIC DATA #######################
   BixiHistoricDataCheckerLambda:
+    Description: "Lambda function for checking the availability and consistency of historic BIXI data."
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
@@ -370,9 +388,9 @@ Resources:
         Variables:
           BIXI_DATA_URL: !Ref BixiDataUrl
           BIXI_CDN: !Ref BixiCdn
-          MONGODB_URI: !Ref MongoDbUri
-          BIXI_DB_NAME: !Ref BixiDbName
-          BIXI_HISTORIC_URLS_COLLECTION: !Ref BixiHistoricUrlsCollection
+          ATLAS_URI: !Ref AtlasUri
+          MONGO_DATABASE_NAME: !Ref MongoDatabaseName
+          BIXI_URL_COLLECTION: !Ref BixiUrlCollection
 
   BixiHistoricDataCheckerRole:
     Type: AWS::IAM::Role
@@ -428,6 +446,7 @@ Resources:
 
   ####################### BIXI - HISTORIC DATA PROCESSOR #######################
   BixiHistoricDataProcessorLambda:
+    Description: "Lambda function for processing historic BIXI data."
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
@@ -442,13 +461,15 @@ Resources:
         Variables:
           BIXI_DATA_URL: !Ref BixiDataUrl
           BIXI_CDN: !Ref BixiCdn
-          MONGODB_URI: !Ref MongoDbUri
-          BIXI_DB_NAME: !Ref BixiDbName
-          BIXI_HISTORIC_URLS_COLLECTION: !Ref BixiHistoricUrlsCollection
-          DEFAULT_ZIP_PATH: !Ref BixiDefaultZipPath
-          DEFAULT_EXTRACT_PATH: !Ref BixiDefaultExtractPath
-          LOCATION_COLLECTION: !Ref BixiLocationCollection
-          TRIP_COLLECTION: !Ref BixiTripCollection
+          ATLAS_URI: !Ref AtlasUri
+          MONGO_DATABASE_NAME: !Ref MongoDatabaseName
+          BIXI_URL_COLLECTION: !Ref BixiUrlCollection
+          BIXI_DEFAULT_EXTRACT_PATH: !Ref BixiDefaultExtractPath
+          BIXI_LOCATION_COLLECTION: !Ref BixiLocationCollection
+          BIXI_TRIP_COLLECTION: !Ref BixiTripCollection
+          BIXI_CHUNK_SIZE: !Ref BixiChunkSize
+          BIXI_CONCURRENCY: !Ref BixiConcurrency
+          BIXI_QUEUE_SIZE: !Ref BixiQueueSize
 
   BixiHistoricDataProcessorRole:
     Type: AWS::IAM::Role
@@ -553,18 +574,19 @@ Resources:
             }
           }
         }
-      RoleArn: !GetAtt StepFunctionsExecutionRole.Arn
+      RoleArn: !GetAtt BixiHistoricDataStepFunctionsExecutionRole.Arn
 
-  StateMachineTrigger:
+  BixiHistoricDataStateMachineTrigger:
     Type: AWS::Events::Rule
     Properties:
-      ScheduleExpression: "cron(0 3 1 * ? *)"
+      Description: "Triggers the BixiHistoricDataWorkflow State Machine on the 2nd of every month at 3 AM."
+      ScheduleExpression: "cron(0 3 2 * ? *)"
       Targets:
         - Arn: !Ref BixiHistoricDataWorkflow
-          Id: "StateMachineTrigger"
-          RoleArn: !GetAtt EventsRole.Arn
+          Id: "BixiHistoricDataStateMachineTrigger"
+          RoleArn: !GetAtt BixiHistoricDataEventsRole.Arn
 
-  EventsRole:
+  BixiHistoricDataEventsRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -583,7 +605,7 @@ Resources:
                 Action: states:StartExecution
                 Resource: !Ref BixiHistoricDataWorkflow
 
-  StepFunctionsExecutionRole:
+  BixiHistoricDataStepFunctionsExecutionRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:

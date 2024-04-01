@@ -67,30 +67,36 @@ jobs:
           API_KEY_STM: ${{ secrets.API_KEY_STM }}
           API_URL_STM_TRIP: ${{ secrets.API_URL_STM_TRIP }}
           API_URL_STM_VEHICLE: ${{ secrets.API_URL_STM_VEHICLE }}
-          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          ATLAS_URI: ${{ secrets.ATLAS_URI }}
+          MONGO_DATABASE_NAME: ${{ secrets.MONGO_DATABASE_NAME }}
           BIXI_DATA_URL: ${{ secrets.BIXI_DATA_URL }}
           BIXI_CDN: ${{ secrets.BIXI_CDN }}
-          BIXI_DB_NAME: ${{ secrets.BIXI_DB_NAME }}
-          BIXI_HISTORIC_URLS_COLLECTION: ${{ secrets.BIXI_HISTORIC_URLS_COLLECTION }}
+          BIXI_URL_COLLECTION: ${{ secrets.BIXI_URL_COLLECTION }}
           BIXI_DEFAULT_ZIP_PATH: ${{ secrets.BIXI_DEFAULT_ZIP_PATH }}
           BIXI_DEFAULT_EXTRACT_PATH: ${{ secrets.BIXI_DEFAULT_EXTRACT_PATH }}
           BIXI_LOCATION_COLLECTION: ${{ secrets.BIXI_LOCATION_COLLECTION }}
           BIXI_TRIP_COLLECTION: ${{ secrets.BIXI_TRIP_COLLECTION }}
+          BIXI_CHUNK_SIZE: ${{ secrets.BIXI_CHUNK_SIZE }}
+          BIXI_CONCURRENCY: ${{ secrets.BIXI_CONCURRENCY }}
+          BIXI_QUEUE_SIZE: ${{ secrets.BIXI_QUEUE_SIZE }}
         run: |
           sam build
           sam deploy --parameter-overrides \
             ApiUrlStmTrip=$API_URL_STM_TRIP \
             ApiKey=$API_KEY_STM \
             ApiUrlStmVehicle=$API_URL_STM_VEHICLE \
-            MongoDbUri=$MONGODB_URI \
+            AtlasUri=$ATLAS_URI \
+            MongoDatabaseName=$MONGO_DATABASE_NAME \
             BixiDataUrl=$BIXI_DATA_URL \
             BixiCdn=$BIXI_CDN \
-            BixiDbName=$BIXI_DB_NAME \
-            BixiHistoricUrlsCollection=$BIXI_HISTORIC_URLS_COLLECTION \
+            BixiUrlCollection=$BIXI_URL_COLLECTION \
             BixiDefaultZipPath=$BIXI_DEFAULT_ZIP_PATH \
             BixiDefaultExtractPath=$BIXI_DEFAULT_EXTRACT_PATH \
             BixiLocationCollection=$BIXI_LOCATION_COLLECTION \
             BixiTripCollection=$BIXI_TRIP_COLLECTION \
+            BixiChunkSize=$BIXI_CHUNK_SIZE \
+            BixiConcurrency=$BIXI_CONCURRENCY \
+            BixiQueueSize=$BIXI_QUEUE_SIZE \
             UpdateCheck="${BIXI},${STMAnalyzeDailyStop},${STMCreateDailyStop},${STMFetchTripUpdates},${STMFetchVehiclePositions},${STMFetchUpdateStatic},${STMFilterDailyStatic},${STMMergeDailyVehiclePosition},${BixiHistoricDataChecker},${BixiHistoricDataProcessor}"
 
       - name: Delete JSON File
