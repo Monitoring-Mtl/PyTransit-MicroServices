@@ -5,7 +5,7 @@ import requests
 from bs4 import BeautifulSoup
 from pymongo import MongoClient
 
-def scrape_bixi_historic_data_urls(url, bixi_cdn, low=2022, top=2099):
+def scrape_bixi_historic_data_urls(url, bixi_cdn, low=2014, top=2099):
     response = requests.get(url)
     soup = BeautifulSoup(response.content, "html.parser")
     urls = {
