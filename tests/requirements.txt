@@ -6,3 +6,4 @@ pymongo[srv]
 beautifulsoup4
 pandas
 motor
+pydantic

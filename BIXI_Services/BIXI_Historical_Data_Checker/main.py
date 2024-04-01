@@ -42,7 +42,7 @@ def handler(event, context):
         print("scraped_urls", scraped_urls)
         new_urls = check_new_data(scraped_urls, atlas_uri, db_name, url_collection)
         print("finished checking for new historic data successfully.")
-        print("new data:", new_urls)
+        print("new urls:", new_urls)
         return {"process": bool(new_urls), "urls": new_urls}
     except Exception as e:
         traceback.print_exc()

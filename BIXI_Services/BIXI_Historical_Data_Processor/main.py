@@ -1,13 +1,14 @@
 import asyncio
 import os
 import traceback
-from urllib.parse import urlparse, urlunparse
 import zipfile
 from io import BytesIO
+from urllib.parse import urlparse, urlunparse
 
 import pandas as pd
 import requests
 from motor.motor_asyncio import AsyncIOMotorClient
+from pydantic import BaseModel
 from pymongo import InsertOne, UpdateOne
 
 REQUIRED_COLUMNS = [
@@ -22,6 +23,19 @@ REQUIRED_COLUMNS = [
     "STARTTIMEMS",
     "ENDTIMEMS",
 ]
+
+
+class Config(BaseModel):
+    ATLAS_URI: str
+    MONGO_DATABASE_NAME: str
+    BIXI_CDN: str
+    BIXI_DEFAULT_EXTRACT_PATH: str
+    BIXI_LOCATION_COLLECTION: str
+    BIXI_TRIP_COLLECTION: str
+    BIXI_QUEUE_SIZE: int
+    BIXI_CHUNK_SIZE: int
+    BIXI_CONCURRENCY: int
+    BIXI_URL_COLLECTION: str
 
 
 async def save_url(collection, url, year=None):
@@ -123,7 +137,9 @@ def extract(url: str, bixi_cdn: str, path):
     # fix for "Full server-side request forgery" security warning
     url_parsed = urlparse(url)
     bixi_cdn_parsed = urlparse(bixi_cdn)
-    url = urlunparse((bixi_cdn_parsed.scheme, bixi_cdn_parsed.netloc, url_parsed.path, '', '', ''))
+    url = urlunparse(
+        (bixi_cdn_parsed.scheme, bixi_cdn_parsed.netloc, url_parsed.path, "", "", "")
+    )
     print("start download and extract", url)
     with requests.get(url) as r:
         r.raise_for_status()
@@ -177,27 +193,24 @@ async def transform_load(
     await asyncio.gather(*workers, return_exceptions=True)
 
 
-async def etl(url_item):
-    print("ETL process started for URL:", url_item[0])
-    url, year = url_item
+async def etl(url: str, year: int, config: Config):
+    print("ETL process started for URL:", url)
     # db object
-    client = AsyncIOMotorClient(os.environ["ATLAS_URI"])
-    db = client[os.environ["MONGO_DATABASE_NAME"]]
+    client = AsyncIOMotorClient(config.ATLAS_URI)
+    db = client[config.MONGO_DATABASE_NAME]
     # extract
-    files = extract(
-        url, os.environ["BIXI_CDN"], os.environ["BIXI_DEFAULT_EXTRACT_PATH"]
-    )
+    files = extract(url, config.BIXI_CDN, config.BIXI_DEFAULT_EXTRACT_PATH)
     # transform and load
     await transform_load(
         files,
-        db[os.environ["BIXI_LOCATION_COLLECTION"]],
-        db[os.environ["BIXI_TRIP_COLLECTION"]],
-        int(os.environ["BIXI_QUEUE_SIZE"]),
-        int(os.environ["BIXI_CHUNK_SIZE"]),
-        int(os.environ["BIXI_CONCURRENCY"]),
+        db[config.BIXI_LOCATION_COLLECTION],
+        db[config.BIXI_TRIP_COLLECTION],
+        config.BIXI_QUEUE_SIZE,
+        config.BIXI_CHUNK_SIZE,
+        config.BIXI_CONCURRENCY,
     )
     # cleaning up
-    await save_url(db[os.environ["BIXI_URL_COLLECTION"]], url, year)
+    await save_url(db[config.BIXI_URL_COLLECTION], url, year)
     for file_path in files:
         file_path = os.path.abspath(file_path)
         if not file_path.startswith(os.getcwd()):
@@ -215,9 +228,10 @@ async def main(event, context):
             print("no new data to process.")
             return {"status": "Success", "filenames": None}
         sorted_urls = dict(sorted(urls.items()))
+        config = Config(**os.environ)
         files = []
         for year, url in sorted_urls.items():
-            files.extend(await etl((url, year)))
+            files.extend(await etl(url, year, config))
         print("historic data processed successfully.")
         return {"status": "Success", "filenames": files}
     except Exception as e:

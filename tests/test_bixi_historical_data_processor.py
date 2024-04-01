@@ -7,6 +7,7 @@ from pandas.testing import assert_frame_equal
 from pymongo import InsertOne, UpdateOne
 
 from BIXI_Services.BIXI_Historical_Data_Processor.main import (
+    Config,
     create_update_operations,
     etl,
     handler,
@@ -169,7 +170,7 @@ class TestBixiHistoricalDataProcessorAsync(IsolatedAsyncioTestCase):
         mock_remove,
     ):
         assert os.environ["ATLAS_URI"] == "test_mongodb_uri"
-        url_item = ("http://example.com/data.zip", "2020")
+        url, year = ("http://example.com/data.zip", "2020")
 
         mock_extract.return_value = ["file1.csv", "file2.csv"]
 
@@ -178,8 +179,8 @@ class TestBixiHistoricalDataProcessorAsync(IsolatedAsyncioTestCase):
         ) as mock_client:
             mock_db = MagicMock()
             mock_client.return_value.__getitem__.return_value = mock_db
-
-            await etl(url_item)
+            
+            await etl(url, year, Config(**os.environ))
 
             mock_extract.assert_called_once_with(
                 "http://example.com/data.zip", "test_cdn", "/tmp/"
@@ -225,9 +226,10 @@ class TestBixiHistoricalDataProcessorAsync(IsolatedAsyncioTestCase):
                 ["/tmp/file2021_1.csv", "/tmp/file2021_2.csv"],
             ]
             await main(event, context)
+            config=Config(**os.environ)
             calls = [
-                call(("http://example.com/data2020.zip", 2020)),
-                call(("http://example.com/data2021.zip", 2021)),
+                call("http://example.com/data2020.zip", 2020, config),
+                call("http://example.com/data2021.zip", 2021, config),
             ]
             mock_etl.assert_has_calls(calls, any_order=False)
             self.assertEqual(mock_etl.call_count, 2)
