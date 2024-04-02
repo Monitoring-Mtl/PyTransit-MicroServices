@@ -32,8 +32,9 @@ class TestExtract(TestCase):
 
         mock_get.assert_called_once()
         mock_zipfile.assert_called_once()
+        mock_makedirs.assert_called_once_with(path, exist_ok=True)
 
-        expected_paths = [os.path.abspath("file1.csv")]
+        expected_paths = [os.path.abspath(os.path.join(path, "file1.csv"))]
         self.assertTrue(all(item in result for item in expected_paths))
 
 

@@ -109,9 +109,6 @@ class TransformLoad2022(TransformLoadStrategy):
         max_starttimems = await self.get_highest_starttimems(col_trips)
         for file in csv_files:
             file = os.path.abspath(file)
-            if not file.startswith(os.getcwd()):
-                print(f"Access denied: {file}")
-                continue
             # ensure file exists
             if not os.path.exists(file):
                 print(file, "doesn't exist.")
@@ -205,7 +202,7 @@ def handler(event, context):
 async def async_handler(event, context):
     print("historic data processing started.")
     try:
-        urls: dict[int, str] = event["urls"]
+        urls = event["urls"]
         if not urls:
             print("no new data to process.")
             return {"status": "Success", "filenames": None}
@@ -213,7 +210,7 @@ async def async_handler(event, context):
         config = Config(**os.environ)
         files = []
         for year, url in sorted_urls.items():
-            files.append(await etl(url, year, config))
+            files.append(await etl(url, int(year), config))
         print(f"historic data processed successfully at {datetime.now().isoformat()}.")
         return {"status": "Success", "filenames": str(files)}
     except Exception as e:
@@ -237,10 +234,10 @@ async def etl(url: str, year: int, config: Config):
     # cleaning up
     for file_path in files:
         file_path = os.path.abspath(file_path)
-        if not file_path.startswith(os.getcwd()):
-            print(f"Access denied: {file_path}")
-            continue
-        os.remove(file_path)
+        try:
+            os.remove(file_path)
+        except Exception:
+            print("delete failed for", file_path)
     return result
 
 
@@ -255,12 +252,16 @@ def extract(url: str, bixi_cdn: str, path):
     with requests.get(url) as r:
         r.raise_for_status()
         with zipfile.ZipFile(BytesIO(r.content)) as z:
-            # os.makedirs(path, exist_ok=True)
-            z.extractall()
+            os.makedirs(path, exist_ok=True)
+            z.extractall(path)
             extracted = z.namelist()
     if not extracted:
         raise Exception("No file extracted.")
-    extracted = [os.path.abspath(file) for file in extracted if file.endswith(".csv")]
+    extracted = [
+        os.path.abspath(os.path.join(path, file))
+        for file in extracted
+        if file.endswith(".csv")
+    ]
     print("extracted files:", extracted)
     return extracted
 
