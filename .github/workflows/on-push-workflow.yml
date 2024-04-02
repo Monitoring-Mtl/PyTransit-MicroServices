@@ -48,6 +48,7 @@ jobs:
           STMFetchUpdateStatic=$(jq -r '.STMFetchUpdateGTFSStaticfiles' functions.json)
           STMFilterDailyStatic=$(jq -r '.STMFilterDailyGTFStaticfiles' functions.json)
           STMMergeDailyVehiclePosition=$(jq -r '.STMMergeDailyGTFSVechiclePositions' functions.json)
+          STMAnalyzeSegments=$(jq -r '.STMAnalyzeSegments' functions.json)
           # Set environment variables
           echo "BIXI=$BIXI" >> $GITHUB_ENV
           echo "STMAnalyzeDailyStop=$STMAnalyzeDailyStop" >> $GITHUB_ENV
@@ -57,6 +58,7 @@ jobs:
           echo "STMFetchUpdateStatic=$STMFetchUpdateStatic" >> $GITHUB_ENV
           echo "STMFilterDailyStatic=$STMFilterDailyStatic" >> $GITHUB_ENV
           echo "STMMergeDailyVehiclePosition=$STMMergeDailyVehiclePosition" >> $GITHUB_ENV
+          echo "STMAnalyzeSegments=$STMAnalyzeSegments" >> $GITHUB_ENV
 
       - name: Build and Deploy to AWS
         env:

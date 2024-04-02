@@ -32,6 +32,7 @@ Conditions:
   SetSTMFetchUpdateGTFSStaticfiles: !Not [!Equals [!Select [5, !Ref UpdateCheck], "0"]]
   SetSTMFilterDailyGTFStaticfiles: !Not [!Equals [!Select [6, !Ref UpdateCheck], "0"]]
   SetSTMMergeDailyGTFSVechiclePositions: !Not [!Equals [!Select [7, !Ref UpdateCheck], "0"]]
+  STMAnalyzeSegments: !Not [!Equals [!Select [8, !Ref UpdateCheck], "0"]]
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:

@@ -6,6 +6,7 @@ import pytz
 import io
 import fastparquet
 import polars as pl
+import pandas as pd
 import polars.selectors as cs
 
 from datetime import datetime, timedelta
@@ -45,21 +46,16 @@ def get_daily_parquet_file(bucket_name, prefix):
         print('No objects found in the specified prefix.')
     return None
 
-def save_dataframe_to_database(event, dataframe_json, date_str):
+def save_dataframe_to_db(event, df): 
     atlas_uri = os.environ['ATLAS_URI']
     db_name = os.environ['MONGO_DATABASE_NAME']
+    mongoClient = MongoClient(atlas_uri)
+    db = mongoClient[db_name]
     collection_name = event['collection_name']
-    mongoClient = MongoClient(atlas_uri, server_api=ServerApi('1'), tls=True, tlsAllowInvalidCertificates=True)
-    document_name = f'stm_segments_analysis_{date_str}'
-    try:
-        document = { "document_name": document_name, "data": dataframe_json }
-        db = mongoClient[db_name]
-        fs = GridFS(db, collection=collection_name)
-        with fs.new_file(filename=document_name) as fp:
-            fp.write(dataframe_json.encode('utf-8'))
-        print(f"Inserted document with GridFS.")
-    except Exception as e:
-        print(f"Mongo insert returned an error: {e}")
+    collection = db[collection_name]
+    df = df.to_pandas()
+    df.reset_index(inplace=True)
+    collection.insert_many(df.to_dict('records'))
 
 def lambda_handler(event, context):
     # Define the buckets and file paths
@@ -110,4 +106,4 @@ def lambda_handler(event, context):
     # Select only relevant columns before saving to database
     daily_data = daily_data.select(['trip_id', 'stop_id', 'previous_stop_id', 'offset_difference', 'Current_Occupancy', 'arrival_time_unix'])
 
-    save_dataframe_to_database(daily_data)
+    save_dataframe_to_db(event, daily_data)
