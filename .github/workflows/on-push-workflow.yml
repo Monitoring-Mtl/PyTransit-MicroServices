@@ -48,6 +48,7 @@ jobs:
           STMFetchUpdateStatic=$(jq -r '.STMFetchUpdateGTFSStaticfiles' functions.json)
           STMFilterDailyStatic=$(jq -r '.STMFilterDailyGTFStaticfiles' functions.json)
           STMMergeDailyVehiclePosition=$(jq -r '.STMMergeDailyGTFSVechiclePositions' functions.json)
+          today=$(date '+%Y-%m-%d')
           # Set environment variables
           echo "BIXI=$BIXI" >> $GITHUB_ENV
           echo "STMAnalyzeDailyStop=$STMAnalyzeDailyStop" >> $GITHUB_ENV
@@ -57,6 +58,7 @@ jobs:
           echo "STMFetchUpdateStatic=$STMFetchUpdateStatic" >> $GITHUB_ENV
           echo "STMFilterDailyStatic=$STMFilterDailyStatic" >> $GITHUB_ENV
           echo "STMMergeDailyVehiclePosition=$STMMergeDailyVehiclePosition" >> $GITHUB_ENV
+          echo "today=$today" >> $GITHUB_ENV
 
       - name: Build and Deploy to AWS
         env:
@@ -65,7 +67,7 @@ jobs:
           API_URL_STM_VEHICLE: ${{ secrets.API_URL_STM_VEHICLE }}
         run: |
           sam build
-          sam deploy --parameter-overrides ApiUrlStmTrip=$API_URL_STM_TRIP ApiKey=$API_KEY_STM ApiUrlStmVehicle=$API_URL_STM_VEHICLE UpdateCheck="${BIXI},${STMAnalyzeDailyStop},${STMCreateDailyStop},${STMFetchTripUpdates},${STMFetchVehiclePositions},${STMFetchUpdateStatic},${STMFilterDailyStatic},${STMMergeDailyVehiclePosition}"
+          sam deploy --parameter-overrides ApiUrlStmTrip=$API_URL_STM_TRIP ApiKey=$API_KEY_STM ApiUrlStmVehicle=$API_URL_STM_VEHICLE Date=$today UpdateCheck="${BIXI},${STMAnalyzeDailyStop},${STMCreateDailyStop},${STMFetchTripUpdates},${STMFetchVehiclePositions},${STMFetchUpdateStatic},${STMFilterDailyStatic},${STMMergeDailyVehiclePosition}"
 
       - name: Delete JSON File
         run: rm functions.json
