@@ -15,6 +15,9 @@ Parameters:
   ApiUrlStmVehicle:
     Description: The STM API Vehicle URL
     Type: String
+  Date:
+    Description: Date of today for version history
+    Type: String
   UpdateCheck:
     Description: Checks if each function can be updated
     Type: CommaDelimitedList
@@ -109,6 +112,7 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
+      Description: !Ref Date
       FunctionName: !Ref STMFetchGTFSTripUpdates
 
   STMFetchGTFSTripUpdatesAlias:
@@ -124,7 +128,7 @@ Resources:
   STMFetchGTFSTripUpdatesTrigger:
     Type: AWS::Events::Rule
     Properties:
-      Description: "Calls STMFetchGTFSTripUpdates every 15 minute"
+      Description: "Calls STMFetchGTFSTripUpdates every 15 minutes"
       ScheduleExpression: rate(15 minutes)
       State: ENABLED
       Targets:
@@ -169,6 +173,7 @@ Resources:
   #   DeletionPolicy: Retain
   #   UpdateReplacePolicy: Retain
   #   Properties:
+  #     Description: !Ref Date
   #     FunctionName: !Ref STMFetchGTFSVehiclePositions
 
   # STMFetchGTFSVehiclePositionsAlias:
@@ -338,6 +343,7 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
+      Description: !Ref Date
       FunctionName: !Ref BIXIFetchGBFSStationStatus
 
   BIXIFetchGBFSStationStatusAlias:
@@ -651,6 +657,7 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
+      Description: !Ref Date
       FunctionName: !Ref STMFetchUpdateGTFSStaticfiles
 
   STMFetchUpdateGTFSStaticfilesAlias:
@@ -666,8 +673,8 @@ Resources:
   STMFetchUpdateGTFSStaticfilesTrigger:
     Type: AWS::Events::Rule
     Properties:
-      Description: "Calls STMFetchUpdateGTFSStaticfiles every morning at 6 AM"
-      ScheduleExpression: cron(0 6 * * ? *)
+      Description: "Calls STMFetchUpdateGTFSStaticfiles every morning at 5:15 AM (UTC)"
+      ScheduleExpression: cron(15 5 * * ? *)
       State: ENABLED
       Targets:
         - Arn: !GetAtt STMFetchUpdateGTFSStaticfiles.Arn
@@ -710,6 +717,7 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
+      Description: !Ref Date
       FunctionName: !Ref STMFilterDailyGTFStaticfiles
 
   STMFilterDailyGTFStaticfilesAlias:
@@ -725,8 +733,8 @@ Resources:
   STMFilterDailyGTFStaticfilesTrigger:
     Type: AWS::Events::Rule
     Properties:
-      Description: "Calls STMFilterDailyGTFStaticfiles every morning at 8 AM"
-      ScheduleExpression: cron(0 8 * * ? *)
+      Description: "Calls STMFilterDailyGTFStaticfiles every morning at 5:30 AM (UTC)"
+      ScheduleExpression: cron(30 5 * * ? *)
       State: ENABLED
       Targets:
         - Arn: !GetAtt STMFilterDailyGTFStaticfiles.Arn
@@ -770,6 +778,7 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
+      Description: !Ref Date
       FunctionName: !Ref STMAnalyzeDailyStopsData
 
   STMAnalyzeDailyStopsDataAlias:
@@ -785,8 +794,8 @@ Resources:
   STMAnalyzeDailyStopsDataTrigger:
     Type: AWS::Events::Rule
     Properties:
-      Description: "Calls STMAnalyzeDailyStopsData every day at 0:15 AM"
-      ScheduleExpression: cron(15 0 * * ? *)
+      Description: "Calls STMAnalyzeDailyStopsData every day at 6 AM (UTC)"
+      ScheduleExpression: cron(0 6 * * ? *)
       State: ENABLED
       Targets:
         - Arn: !GetAtt STMAnalyzeDailyStopsData.Arn
@@ -831,6 +840,7 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
+      Description: !Ref Date
       FunctionName: !Ref STMCreateDailyStopsInfo
 
   STMCreateDailyStopsInfoAlias:
@@ -846,8 +856,8 @@ Resources:
   STMCreateDailyStopsInfoTrigger:
     Type: AWS::Events::Rule
     Properties:
-      Description: "Calls STMCreateDailyStopsInfo every day at 1:15 AM"
-      ScheduleExpression: cron(15 1 * * ? *)
+      Description: "Calls STMCreateDailyStopsInfo every day at 5:45 AM (UTC)"
+      ScheduleExpression: cron(45 5 * * ? *)
       State: ENABLED
       Targets:
         - Arn: !GetAtt STMCreateDailyStopsInfo.Arn
@@ -892,6 +902,7 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
+      Description: !Ref Date
       FunctionName: !Ref STMMergeDailyGTFSVechiclePositions
 
   STMMergeDailyGTFSVechiclePositionsAlias:
@@ -907,8 +918,8 @@ Resources:
   STMMergeDailyGTFSVechiclePositionsTrigger:
     Type: AWS::Events::Rule
     Properties:
-      Description: "Calls STMMergeDailyGTFSVechiclePositions every day at 11:58 PM"
-      ScheduleExpression: cron(58 23 * * ? *)
+      Description: "Calls STMMergeDailyGTFSVechiclePositions every day at 5:05 AM (UTC)"
+      ScheduleExpression: cron(5 5 * * ? *)
       State: ENABLED
       Targets:
         - Arn: !GetAtt STMMergeDailyGTFSVechiclePositions.Arn

@@ -3,7 +3,7 @@ import os
 import io
 import polars as pl
 import concurrent.futures
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
 
 # Initialize Boto3 S3 client
@@ -22,7 +22,9 @@ def lambda_handler(event, context):
     # Extract the date from the event, or use the current date in the specified timezone
     date_str = event.get('date', datetime.now(eastern).strftime('%Y%m%d'))
 
+    # Parse the date string into a datetime object
     date_obj = datetime.strptime(date_str, '%Y%m%d')
+    date_obj = date_obj - timedelta(days=1)
     formatted_date = date_obj.strftime('%Y-%m-%d')
 
     # We use "Bucket/YYYY/MM/DD/... as a folder structure to benefit from Partition since our query will be mainly with based on date

@@ -50,6 +50,7 @@ jobs:
           STMMergeDailyVehiclePosition=$(jq -r '.STMMergeDailyGTFSVechiclePositions' functions.json)
           BixiHistoricDataChecker=$(jq -r '.BixiHistoricDataCheckerLambda' function.json)
           BixiHistoricDataProcessor=$(jq -r '.BixiHistoricDataProcessorLambda' function.json)
+          today=$(date '+%Y-%m-%d')
           # Set environment variables
           echo "BIXI=$BIXI" >> $GITHUB_ENV
           echo "STMAnalyzeDailyStop=$STMAnalyzeDailyStop" >> $GITHUB_ENV
@@ -61,6 +62,7 @@ jobs:
           echo "STMMergeDailyVehiclePosition=$STMMergeDailyVehiclePosition" >> $GITHUB_ENV
           echo "BixiHistoricDataChecker=$BixiHistoricDataChecker" >> $GITHUB_ENV
           echo "BixiHistoricDataProcessor=$BixiHistoricDataProcessor" >> $GITHUB_ENV
+          echo "today=$today" >> $GITHUB_ENV
 
       - name: Build and Deploy to AWS
         env:
@@ -84,6 +86,7 @@ jobs:
             ApiUrlStmTrip=$API_URL_STM_TRIP \
             ApiKey=$API_KEY_STM \
             ApiUrlStmVehicle=$API_URL_STM_VEHICLE \
+            Date=$today \
             AtlasUri=$ATLAS_URI \
             MongoDatabaseName=$MONGO_DATABASE_NAME \
             BixiDataUrl=$BIXI_DATA_URL \
@@ -95,7 +98,7 @@ jobs:
             BixiChunkSize=$BIXI_CHUNK_SIZE \
             BixiConcurrency=$BIXI_CONCURRENCY \
             BixiQueueSize=$BIXI_QUEUE_SIZE \
-            UpdateCheck="${BIXI},${STMAnalyzeDailyStop},${STMCreateDailyStop},${STMFetchTripUpdates},${STMFetchVehiclePositions},${STMFetchUpdateStatic},${STMFilterDailyStatic},${STMMergeDailyVehiclePosition},${BixiHistoricDataChecker},${BixiHistoricDataProcessor}"
+            UpdateCheck="${BIXI},${STMAnalyzeDailyStop},${STMCreateDailyStop},${STMFetchTripUpdates},${STMFetchVehiclePositions},${STMFetchUpdateStatic},${STMFilterDailyStatic},${STMMergeDailyVehiclePosition}"
 
       - name: Delete JSON File
         run: rm functions.json
