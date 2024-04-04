@@ -27,6 +27,12 @@ class Config(BaseModel):
     BIXI_URL_COLLECTION: str
 
 
+class TransformLoadStrategy(ABC):
+    @abstractmethod
+    async def transform_load(self, csv_files: list[str], config: Config):
+        pass
+
+
 class TransformLoadContext:
     def __init__(self, year: int):
         self.strategy = self._choose_strategy(year)
@@ -41,12 +47,6 @@ class TransformLoadContext:
 
     async def execute_transform_load(self, csv_files: list[str], config: Config):
         await self.strategy.transform_load(csv_files, config)
-
-
-class TransformLoadStrategy(ABC):
-    @abstractmethod
-    async def transform_load(self, csv_files: list[str], config: Config):
-        pass
 
 
 class TransformLoad2014(TransformLoadStrategy):

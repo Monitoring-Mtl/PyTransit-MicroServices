@@ -1,0 +1,15 @@
+@startuml stepfunctionsequence
+participant BixiHistoricDataWorkflow
+participant BixiHistoricDataCheckerLambda
+participant BixiHistoricDataProcessorLambda
+
+loop Every Month
+    BixiHistoricDataWorkflow -> BixiHistoricDataCheckerLambda: handler
+    activate BixiHistoricDataCheckerLambda
+    return: process, urls
+    alt process == true
+        BixiHistoricDataWorkflow -> BixiHistoricDataProcessorLambda: handler(urls)
+    end
+end
+
+@enduml

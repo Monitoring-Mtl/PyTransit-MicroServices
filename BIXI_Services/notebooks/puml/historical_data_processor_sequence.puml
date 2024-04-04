@@ -1,0 +1,37 @@
+@startuml processorsequence
+participant "handler" as handler
+database "BixiCDN" as cdn
+participant ":TransformLoadContext" as context
+participant ":TransformLoadStrategy" as strategy
+database "MongoDB" as mongo
+
+
+-> handler: trigger(urls)
+activate handler
+handler -> handler: sort urls by year ascending
+loop for each url, year
+    handler -> cdn: get data
+    activate cdn
+    return zip file
+    handler -> handler: extract csv file
+    handler -> context **: create(year)
+    context -> strategy **: create based on year
+    handler -> context: execute_transform_load(csv filenames)
+    activate context
+    context -> strategy: transform_load(csv filenames)
+    activate strategy
+    par
+        strategy -> strategy: transform locations
+        strategy -> mongo: load locations
+    else
+        strategy -> strategy: transform trips
+        strategy -> mongo: load trips
+    end
+    return 
+    return
+    handler -> mongo : save urls, years
+    handler -> handler: delete extracted files
+end
+return
+
+@enduml
