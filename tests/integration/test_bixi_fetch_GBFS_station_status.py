@@ -2,6 +2,7 @@ import json
 import os
 import tempfile
 import unittest
+import io
 from unittest.mock import patch, MagicMock
 from BIXI_Services.BIXI_Fetch_GBFS_Station_Status.main import lambda_handler
 
@@ -58,6 +59,40 @@ class TestLambdaFunction(unittest.TestCase):
         # Verify that the DataFrame creation and S3 upload were not attempted due to the fetch failure
         mock_dataframe.assert_not_called()
         mock_boto3.upload_file.assert_not_called()
+    
+    @patch('BIXI_Services.BIXI_Fetch_GBFS_Station_Status.main.boto3.client')
+    @patch('BIXI_Services.BIXI_Fetch_GBFS_Station_Status.main.urlopen')
+    def test_upload_failure(self, mock_urlopen, mock_boto3):
+        response_data = json.dumps({
+             "data": {"stations": [{"id": "1", "name": "Test Station"}]}
+        }).encode('utf-8')
+
+        mock_response = MagicMock()
+        mock_response.read.return_value = response_data
+        mock_urlopen.return_value = mock_response    
+        
+        mock_s3_client = MagicMock()
+        mock_boto3.return_value = mock_s3_client
+
+        # Simulate failure to upload to S3
+        mock_s3_client.upload_file.side_effect = Exception("Simulated S3 upload failure")
+
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            temp_file_path = os.path.join(tmpdirname, 'file.parquet')
+            with patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
+                lambda_handler({
+                    'bucket_name': 'test-bucket', 
+                    'url': 'http://test.url', 
+                    'file_path': temp_file_path
+                }, None)
+
+
+        # Check if the correct error message was printed
+        self.assertIn("Failed to upload to S3: Simulated S3 upload failure", mock_stdout.getvalue())
+
+        # Verify that upload_file was indeed called
+        mock_s3_client.upload_file.assert_called_once()
+
 
 if __name__ == '__main__':
     unittest.main()
