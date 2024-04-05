@@ -42,8 +42,6 @@ jobs:
           BIXI_LOCATION_COLLECTION: ${{ vars.BIXI_LOCATION_COLLECTION }}
           BIXI_TRIP_COLLECTION: ${{ vars.BIXI_TRIP_COLLECTION }}
           BIXI_CHUNK_SIZE: ${{ vars.BIXI_CHUNK_SIZE }}
-          BIXI_CONCURRENCY: ${{ vars.BIXI_CONCURRENCY }}
-          BIXI_QUEUE_SIZE: ${{ vars.BIXI_QUEUE_SIZE }}
 
       - name: Configure pages
         if: ${{ inputs.deploy == 'true' }}

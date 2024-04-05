@@ -1,6 +1,6 @@
 import os
-from unittest import IsolatedAsyncioTestCase, TestCase
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest import TestCase
+from unittest.mock import MagicMock, patch
 
 from pymongo import InsertOne
 
@@ -38,8 +38,8 @@ class TestExtract(TestCase):
         self.assertTrue(all(item in result for item in expected_paths))
 
 
-class TestAsyncOperations(IsolatedAsyncioTestCase):
-    async def asyncSetUp(self):
+class TestOperations(TestCase):
+    def setUp(self):
         self.config = Config(
             ATLAS_URI="mongodb+srv://test",
             MONGO_DATABASE_NAME="test_db",
@@ -49,21 +49,18 @@ class TestAsyncOperations(IsolatedAsyncioTestCase):
             BIXI_CDN="https://cdn.example.com",
             BIXI_DEFAULT_EXTRACT_PATH="/path/to/extract",
             BIXI_CHUNK_SIZE=25000,
-            BIXI_QUEUE_SIZE=1,
-            BIXI_CONCURRENCY=4,
         )
 
-    @patch("BIXI_Services.BIXI_Historical_Data_Processor.main.AsyncIOMotorClient")
-    async def test_save_url(self, mock_client):
+    @patch("BIXI_Services.BIXI_Historical_Data_Processor.main.MongoClient")
+    def test_save_url(self, mock_client):
         url = "https://example.com/data.zip"
         year = 2021
         mock_collection = MagicMock()
-        mock_collection.bulk_write = AsyncMock()
         mock_client.return_value.__getitem__.return_value.__getitem__.return_value = (
             mock_collection
         )
-        await save_url(url, year, self.config)
-        mock_collection.bulk_write.assert_awaited_once()
+        save_url(url, year, self.config)
+        mock_collection.bulk_write.assert_called_once()
         args, _ = mock_collection.bulk_write.call_args
         operations = args[0]
         self.assertEqual(len(operations), 1)
@@ -73,20 +70,20 @@ class TestAsyncOperations(IsolatedAsyncioTestCase):
     @patch("BIXI_Services.BIXI_Historical_Data_Processor.main.extract")
     @patch("BIXI_Services.BIXI_Historical_Data_Processor.main.TransformLoadContext")
     @patch("BIXI_Services.BIXI_Historical_Data_Processor.main.save_url")
-    async def test_etl(self, mock_save_url, mock_context, mock_extract):
+    def test_etl(self, mock_save_url, mock_context, mock_extract):
         url = "https://example.com/data.zip"
         year = 2021
         mock_extract.return_value = ["/path/to/extract/file1.csv"]
         mock_context_instance = MagicMock()
         mock_context.return_value = mock_context_instance
-        mock_context_instance.execute_transform_load = AsyncMock()
+        mock_context_instance.execute_transform_load = MagicMock()
 
-        await etl(url, year, self.config)
+        etl(url, year, self.config)
 
         mock_extract.assert_called_once_with(
             url, self.config.BIXI_CDN, self.config.BIXI_DEFAULT_EXTRACT_PATH
         )
-        mock_context_instance.execute_transform_load.assert_awaited_once_with(
+        mock_context_instance.execute_transform_load.assert_called_once_with(
             ["/path/to/extract/file1.csv"], self.config
         )
-        mock_save_url.assert_awaited_once_with(url, year, self.config)
+        mock_save_url.assert_called_once_with(url, year, self.config)

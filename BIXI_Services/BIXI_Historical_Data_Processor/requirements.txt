@@ -1,5 +1,4 @@
-pandas
+polars
 pymongo[srv]
-motor
 requests
 pydantic

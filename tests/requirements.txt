@@ -4,7 +4,6 @@ boto3
 requests
 pymongo[srv]
 beautifulsoup4
-pandas
-motor
+polars
 pydantic
 pytest-asyncio

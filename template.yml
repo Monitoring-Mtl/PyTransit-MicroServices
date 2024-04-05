@@ -60,14 +60,6 @@ Parameters:
     Description: "Chunk size for processing BIXI data."
     Type: Number
     Default: "250000"
-  BixiConcurrency:
-    Description: "Concurrency level for processing BIXI data."
-    Type: Number
-    Default: "4"
-  BixiQueueSize:
-    Description: "Size of the queue for processing BIXI data."
-    Type: Number
-    Default: "1"
   
 Conditions:
   SetBIXIFetchGBFSStationStatus: !Not [!Equals [!Select [0, !Ref UpdateCheck], "0"]]
@@ -474,8 +466,6 @@ Resources:
           BIXI_LOCATION_COLLECTION: !Ref BixiLocationCollection
           BIXI_TRIP_COLLECTION: !Ref BixiTripCollection
           BIXI_CHUNK_SIZE: !Ref BixiChunkSize
-          BIXI_CONCURRENCY: !Ref BixiConcurrency
-          BIXI_QUEUE_SIZE: !Ref BixiQueueSize
 
   BixiHistoricDataProcessorRole:
     Type: AWS::IAM::Role

@@ -1,4 +1,3 @@
-import asyncio
 import os
 import traceback
 import zipfile
@@ -7,11 +6,10 @@ from datetime import datetime
 from io import BytesIO
 from urllib.parse import urlparse, urlunparse
 
-import pandas as pd
+import polars as pl
 import requests
-from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
-from pymongo import InsertOne, UpdateOne
+from pymongo import InsertOne, MongoClient, UpdateOne
 
 
 class Config(BaseModel):
@@ -21,15 +19,13 @@ class Config(BaseModel):
     BIXI_DEFAULT_EXTRACT_PATH: str
     BIXI_LOCATION_COLLECTION: str
     BIXI_TRIP_COLLECTION: str
-    BIXI_QUEUE_SIZE: int
     BIXI_CHUNK_SIZE: int
-    BIXI_CONCURRENCY: int
     BIXI_URL_COLLECTION: str
 
 
 class TransformLoadStrategy(ABC):
     @abstractmethod
-    async def transform_load(self, csv_files: list[str], config: Config):
+    def transform_load(self, csv_files: list[str], config: Config):
         pass
 
 
@@ -45,68 +41,63 @@ class TransformLoadContext:
         else:
             raise ValueError("Unsupported year")
 
-    async def execute_transform_load(self, csv_files: list[str], config: Config):
-        await self.strategy.transform_load(csv_files, config)
+    def execute_transform_load(self, csv_files: list[str], config: Config):
+        self.strategy.transform_load(csv_files, config)
 
 
 class TransformLoad2014(TransformLoadStrategy):
-    async def transform_load(self, csv_files, config):
+    def transform_load(self, csv_files, config):
         raise NotImplementedError("TransformLoad2014 transform_load not implemented.")
 
 
 class TransformLoad2022(TransformLoadStrategy):
     required_columns = [
-        "STARTSTATIONNAME",
-        "STARTSTATIONARRONDISSEMENT",
-        "STARTSTATIONLATITUDE",
-        "STARTSTATIONLONGITUDE",
-        "ENDSTATIONNAME",
-        "ENDSTATIONARRONDISSEMENT",
-        "ENDSTATIONLATITUDE",
-        "ENDSTATIONLONGITUDE",
-        "STARTTIMEMS",
-        "ENDTIMEMS",
+        "startstationname",
+        "startstationarrondissement",
+        "startstationlatitude",
+        "startstationlongitude",
+        "endstationname",
+        "endstationarrondissement",
+        "endstationlatitude",
+        "endstationlongitude",
+        "starttimems",
+        "endtimems",
     ]
 
     start_location_columns = [
-        "STARTSTATIONNAME",
-        "STARTSTATIONARRONDISSEMENT",
-        "STARTSTATIONLATITUDE",
-        "STARTSTATIONLONGITUDE",
+        "startstationname",
+        "startstationarrondissement",
+        "startstationlatitude",
+        "startstationlongitude",
     ]
 
     end_location_columns = [
-        "ENDSTATIONNAME",
-        "ENDSTATIONARRONDISSEMENT",
-        "ENDSTATIONLATITUDE",
-        "ENDSTATIONLONGITUDE",
+        "endstationname",
+        "endstationarrondissement",
+        "endstationlatitude",
+        "endstationlongitude",
     ]
 
     location_columns = ["name", "arrondissement", "latitude", "longitude"]
 
     trip_columns = [
-        "STARTSTATIONNAME",
-        "ENDSTATIONNAME",
-        "STARTTIMEMS",
-        "ENDTIMEMS",
-        "DURATIONMS",
+        "startstationname",
+        "endstationname",
+        "starttimems",
+        "endtimems",
+        "durationms",
     ]
 
     def map(self, columns, db_colums=location_columns):
         return {column: name for column, name in zip(columns, db_colums)}
 
-    async def transform_load(self, csv_files, config):
+    def transform_load(self, csv_files, config):
         # db objects
-        db = AsyncIOMotorClient(config.ATLAS_URI)[config.MONGO_DATABASE_NAME]
+        db = MongoClient(config.ATLAS_URI)[config.MONGO_DATABASE_NAME]
         col_trips = db[config.BIXI_TRIP_COLLECTION]
         col_locations = db[config.BIXI_LOCATION_COLLECTION]
-        # queue & workers
-        q = asyncio.Queue(config.BIXI_QUEUE_SIZE)
-        workers = [
-            asyncio.create_task(self.worker(q)) for _ in range(config.BIXI_CONCURRENCY)
-        ]
         # start
-        max_starttimems = await self.get_highest_starttimems(col_trips)
+        max_starttimems = self.get_highest_starttimems(col_trips)
         for file in csv_files:
             file = os.path.abspath(file)
             # ensure file exists
@@ -114,52 +105,46 @@ class TransformLoad2022(TransformLoadStrategy):
                 print(file, "doesn't exist.")
                 continue
             # ensure the csv has the right columns
-            df = pd.read_csv(file, nrows=0)
-            if not all(column in df.columns for column in self.required_columns):
+            header = pl.read_csv(file, n_rows=0)
+            columns = [c.lower() for c in header.columns]
+            if not all(column in columns for column in self.required_columns):
                 print(f"CSV file {file} does not contain required columns.")
                 continue
-            # enqueue tasks for processing each chunk
+            # read & process
             print("Starting processing:", file)
-            for chunk in pd.read_csv(file, chunksize=config.BIXI_CHUNK_SIZE):
+            reader = pl.read_csv_batched(file, batch_size=config.BIXI_CHUNK_SIZE)
+            while True:
+                chunks = reader.next_batches(1)
+                if not chunks:
+                    break
+                chunk = chunks[0]
+                chunk = chunk.rename(self.map(chunk.columns, self.required_columns))
                 if max_starttimems is not None:
-                    chunk = chunk[chunk["STARTTIMEMS"] > max_starttimems]
-                await q.put(
-                    asyncio.create_task(self.process_locations(chunk, col_locations))
-                )
-                await q.put(asyncio.create_task(self.process_trips(chunk, col_trips)))
-        await q.join()
-        for w in workers:
-            w.cancel()
-        await asyncio.gather(*workers, return_exceptions=True)
+                    chunk = chunk.filter(pl.col("starttimems") > int(max_starttimems))
+                self.process_locations(chunk, col_locations)
+                self.process_trips(chunk, col_trips)
 
-    async def get_highest_starttimems(self, col):
-        doc = await col.find_one(
-            sort=[("STARTTIMEMS", -1)], projection={"STARTTIMEMS": 1}
-        )
-        return doc["STARTTIMEMS"] if doc else None
+    def get_highest_starttimems(self, col):
+        doc = col.find_one(sort=[("starttimems", -1)], projection={"starttimems": 1})
+        return doc["starttimems"] if doc else None
 
-    async def process_locations(self, chunk, collection):
+    def process_locations(self, chunk, collection):
         locations = self.prepare_location_data(chunk)
         if operations := self.create_location_update_operations(locations):
-            await collection.bulk_write(operations, ordered=False)
+            collection.bulk_write(operations, ordered=False)
 
-    def prepare_location_data(self, chunk: pd.DataFrame):
+    def prepare_location_data(self, chunk: pl.DataFrame):
         return (
-            pd.concat(
-                [
-                    chunk[self.start_location_columns].rename(
-                        columns=self.map(self.start_location_columns)
-                    ),
-                    chunk[self.end_location_columns].rename(
-                        columns=self.map(self.end_location_columns)
-                    ),
-                ]
+            chunk[self.start_location_columns]
+            .rename(self.map(self.start_location_columns))
+            .vstack(
+                chunk[self.end_location_columns].rename(
+                    self.map(self.end_location_columns)
+                )
             )
-            .drop_duplicates(subset=["name"])
-            .reset_index(drop=True)
-        )
+        ).unique(subset=["name"])
 
-    def create_location_update_operations(self, locations: pd.DataFrame):
+    def create_location_update_operations(self, locations: pl.DataFrame):
         return [
             UpdateOne(
                 {"_id": row["name"]},
@@ -172,34 +157,23 @@ class TransformLoad2022(TransformLoadStrategy):
                 },
                 upsert=True,
             )
-            for _, row in locations.iterrows()
+            for row in locations.iter_rows(named=True)
         ]
 
-    async def process_trips(self, chunk: pd.DataFrame, collection):
-        trip_docs = self.prepare_trip_data(chunk).to_dict("records")
+    def process_trips(self, chunk: pl.DataFrame, collection):
+        trip_docs = self.prepare_trip_data(chunk).to_dicts()
         if trip_docs:
             operations = [InsertOne(doc) for doc in trip_docs]
-            await collection.bulk_write(operations, ordered=False)
+            collection.bulk_write(operations, ordered=False)
 
-    def prepare_trip_data(self, chunk: pd.DataFrame):
-        chunk = chunk.copy()
-        chunk["DURATIONMS"] = chunk["ENDTIMEMS"] - chunk["STARTTIMEMS"]
+    def prepare_trip_data(self, chunk: pl.DataFrame):
+        chunk = chunk.with_columns(
+            (pl.col("endtimems") - pl.col("starttimems")).alias("durationms")
+        )
         return chunk[self.trip_columns]
-
-    async def worker(self, queue: asyncio.Queue):
-        while True:
-            task = await queue.get()
-            try:
-                await task
-            finally:
-                queue.task_done()
 
 
 def handler(event, context):
-    return asyncio.run(async_handler(event, context))
-
-
-async def async_handler(event, context):
     print("historic data processing started.")
     try:
         urls = event["urls"]
@@ -210,7 +184,7 @@ async def async_handler(event, context):
         config = Config(**os.environ)
         files = []
         for year, url in sorted_urls.items():
-            files.append(await etl(url, int(year), config))
+            files.append(etl(url, int(year), config))
         print(f"historic data processed successfully at {datetime.now().isoformat()}.")
         return {"status": "Success", "filenames": str(files)}
     except Exception as e:
@@ -218,7 +192,7 @@ async def async_handler(event, context):
         return {"status": "Error", "error": str(e), "processedUrls": []}
 
 
-async def etl(url: str, year: int, config: Config):
+def etl(url: str, year: int, config: Config):
     print("ETL process started for URL:", url)
     # extract
     files = extract(url, config.BIXI_CDN, config.BIXI_DEFAULT_EXTRACT_PATH)
@@ -226,8 +200,8 @@ async def etl(url: str, year: int, config: Config):
     context = TransformLoadContext(year)
     result = []
     try:
-        await context.execute_transform_load(files, config)
-        await save_url(url, year, config)
+        context.execute_transform_load(files, config)
+        save_url(url, year, config)
         result = files
     except NotImplementedError:
         print("strategy not implemented for year", year)
@@ -266,10 +240,10 @@ def extract(url: str, bixi_cdn: str, path):
     return extracted
 
 
-async def save_url(url, year, config: Config):
-    client = AsyncIOMotorClient(config.ATLAS_URI)
+def save_url(url, year, config: Config):
+    client = MongoClient(config.ATLAS_URI)
     db = client[config.MONGO_DATABASE_NAME]
     collection = db[config.BIXI_URL_COLLECTION]
     operation = InsertOne({"_id": url, "year": year})
-    await collection.bulk_write([operation], ordered=False)
+    collection.bulk_write([operation], ordered=False)
     print(f"saved: {url}")

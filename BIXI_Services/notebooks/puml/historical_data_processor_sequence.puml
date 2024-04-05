@@ -20,13 +20,10 @@ loop for each url, year
     activate context
     context -> strategy: transform_load(csv filenames)
     activate strategy
-    par
-        strategy -> strategy: transform locations
-        strategy -> mongo: load locations
-    else
-        strategy -> strategy: transform trips
-        strategy -> mongo: load trips
-    end
+    strategy -> strategy: transform locations
+    strategy -> mongo: load locations
+    strategy -> strategy: transform trips
+    strategy -> mongo: load trips
     return 
     return
     handler -> mongo : save urls, years

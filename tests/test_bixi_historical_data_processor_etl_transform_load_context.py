@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -21,25 +21,21 @@ def config():
         BIXI_CDN="https://cdn.example.com",
         BIXI_DEFAULT_EXTRACT_PATH="/path/to/extract",
         BIXI_CHUNK_SIZE=25000,
-        BIXI_QUEUE_SIZE=1,
-        BIXI_CONCURRENCY=4,
     )
 
 
-@pytest.mark.asyncio
-async def test_execute_transform_load_2014(config):
+def test_execute_transform_load_2014(config):
     context = TransformLoadContext(2014)
-    context.strategy.transform_load = AsyncMock(return_value=None)
-    await context.execute_transform_load(["file.csv"], config)
-    context.strategy.transform_load.assert_awaited_once_with(["file.csv"], config)
+    context.strategy.transform_load = MagicMock(return_value=None)
+    context.execute_transform_load(["file.csv"], config)
+    context.strategy.transform_load.assert_called_once_with(["file.csv"], config)
 
 
-@pytest.mark.asyncio
-async def test_execute_transform_load_2022(config):
+def test_execute_transform_load_2022(config):
     context = TransformLoadContext(2022)
-    context.strategy.transform_load = AsyncMock(return_value=None)
-    await context.execute_transform_load(["file.csv"], config)
-    context.strategy.transform_load.assert_awaited_once_with(["file.csv"], config)
+    context.strategy.transform_load = MagicMock(return_value=None)
+    context.execute_transform_load(["file.csv"], config)
+    context.strategy.transform_load.assert_called_once_with(["file.csv"], config)
 
 
 def test_choose_strategy_2014():

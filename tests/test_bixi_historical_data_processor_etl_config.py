@@ -14,9 +14,7 @@ class TestConfigModel(unittest.TestCase):
             "BIXI_DEFAULT_EXTRACT_PATH": "/path/to/extract",
             "BIXI_LOCATION_COLLECTION": "locations",
             "BIXI_TRIP_COLLECTION": "trips",
-            "BIXI_QUEUE_SIZE": 10,
             "BIXI_CHUNK_SIZE": 5,
-            "BIXI_CONCURRENCY": 2,
             "BIXI_URL_COLLECTION": "urls",
             "additional": "whatever",
         }
@@ -31,9 +29,7 @@ class TestConfigModel(unittest.TestCase):
             "BIXI_DEFAULT_EXTRACT_PATH": "/path/to/extract",
             "BIXI_LOCATION_COLLECTION": "locations",
             "BIXI_TRIP_COLLECTION": "trips",
-            "BIXI_QUEUE_SIZE": 10,
             "BIXI_CHUNK_SIZE": 5,
-            "BIXI_CONCURRENCY": 2,
             "BIXI_URL_COLLECTION": "urls",
         }
         with self.assertRaises(ValidationError):

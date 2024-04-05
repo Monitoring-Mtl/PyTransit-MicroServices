@@ -1,37 +1,37 @@
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
-import pandas as pd
-import pytest
+import polars as pl
+from polars.testing import assert_frame_equal
 from pymongo import InsertOne, UpdateOne
 
 from BIXI_Services.BIXI_Historical_Data_Processor.main import TransformLoad2022
 
-CHUNK = pd.DataFrame(
+CHUNK = pl.DataFrame(
     {
-        "STARTSTATIONNAME": ["Station A", "Station B"],
-        "STARTSTATIONARRONDISSEMENT": ["Arrondissement 1", "Arrondissement 2"],
-        "STARTSTATIONLATITUDE": [45.1, 45.2],
-        "STARTSTATIONLONGITUDE": [-73.1, -73.2],
-        "ENDSTATIONNAME": ["Station B", "Station C"],
-        "ENDSTATIONARRONDISSEMENT": ["Arrondissement 2", "Arrondissement 3"],
-        "ENDSTATIONLATITUDE": [45.2, 45.3],
-        "ENDSTATIONLONGITUDE": [-73.2, -73.3],
-        "STARTTIMEMS": [1000, 2000],
-        "ENDTIMEMS": [1500, 2500],
+        "startstationname": ["station a", "station b"],
+        "startstationarrondissement": ["arrondissement 1", "arrondissement 2"],
+        "startstationlatitude": [45.1, 45.2],
+        "startstationlongitude": [-73.1, -73.2],
+        "endstationname": ["station b", "station c"],
+        "endstationarrondissement": ["arrondissement 2", "arrondissement 3"],
+        "endstationlatitude": [45.2, 45.3],
+        "endstationlongitude": [-73.2, -73.3],
+        "starttimems": [1000, 2000],
+        "endtimems": [1500, 2500],
     }
 )
-EMPTY_CHUNK = pd.DataFrame(
-    columns=[
-        "STARTSTATIONNAME",
-        "STARTSTATIONARRONDISSEMENT",
-        "STARTSTATIONLATITUDE",
-        "STARTSTATIONLONGITUDE",
-        "ENDSTATIONNAME",
-        "ENDSTATIONARRONDISSEMENT",
-        "ENDSTATIONLATITUDE",
-        "ENDSTATIONLONGITUDE",
-        "STARTTIMEMS",
-        "ENDTIMEMS",
+EMPTY_CHUNK = pl.DataFrame(
+    schema=[
+        "startstationname",
+        "startstationarrondissement",
+        "startstationlatitude",
+        "startstationlongitude",
+        "endstationname",
+        "endstationarrondissement",
+        "endstationlatitude",
+        "endstationlongitude",
+        "starttimems",
+        "endtimems",
     ]
 )
 
@@ -39,64 +39,56 @@ EMPTY_CHUNK = pd.DataFrame(
 def test_prepare_trip_data():
     transform_load = TransformLoad2022()
     data = {
-        "STARTSTATIONNAME": ["StationA", "StationB"],
-        "ENDSTATIONNAME": ["StationC", "StationD"],
-        "STARTTIMEMS": [1000, 2000],
-        "ENDTIMEMS": [1500, 2500],
+        "startstationname": ["stationa", "stationb"],
+        "endstationname": ["stationc", "stationd"],
+        "starttimems": [1000, 2000],
+        "endtimems": [1500, 2500],
     }
-    chunk = pd.DataFrame(data)
+    chunk = pl.DataFrame(data)
     expected_data = {
-        "STARTSTATIONNAME": ["StationA", "StationB"],
-        "ENDSTATIONNAME": ["StationC", "StationD"],
-        "STARTTIMEMS": [1000, 2000],
-        "ENDTIMEMS": [1500, 2500],
-        "DURATIONMS": [500, 500],
+        "startstationname": ["stationa", "stationb"],
+        "endstationname": ["stationc", "stationd"],
+        "starttimems": [1000, 2000],
+        "endtimems": [1500, 2500],
+        "durationms": [500, 500],
     }
-    expected = pd.DataFrame(expected_data)[transform_load.trip_columns]
+    expected = pl.DataFrame(expected_data)[transform_load.trip_columns]
     result = transform_load.prepare_trip_data(chunk)
-    pd.testing.assert_frame_equal(
-        result.reset_index(drop=True), expected.reset_index(drop=True)
-    )
+    assert_frame_equal(result, expected, check_row_order=False)
 
 
-@pytest.mark.asyncio
-async def test_process_trips_with_valid_data():
+def test_process_trips_with_valid_data():
     mock_collection = MagicMock()
-    mock_collection.bulk_write = AsyncMock()
     transform_load = TransformLoad2022()
-    await transform_load.process_trips(CHUNK, mock_collection)
-    mock_collection.bulk_write.assert_awaited_once()
+    transform_load.process_trips(CHUNK, mock_collection)
+    mock_collection.bulk_write.assert_called_once()
     args, _ = mock_collection.bulk_write.call_args
     operations = args[0]
     assert len(operations) > 0
     for op in operations:
         assert isinstance(op, InsertOne)
         assert set(op._doc.keys()) == {
-            "STARTSTATIONNAME",
-            "ENDSTATIONNAME",
-            "STARTTIMEMS",
-            "ENDTIMEMS",
-            "DURATIONMS",
+            "startstationname",
+            "endstationname",
+            "starttimems",
+            "endtimems",
+            "durationms",
         }
 
 
-@pytest.mark.asyncio
-async def test_process_trips_with_empty_data():
+def test_process_trips_with_empty_data():
     mock_collection = MagicMock()
-    mock_collection.bulk_write = AsyncMock()
     transform_load = TransformLoad2022()
-    empty_chunk = pd.DataFrame(EMPTY_CHUNK)
-    await transform_load.process_trips(empty_chunk, mock_collection)
-    mock_collection.bulk_write.assert_not_awaited()
+    empty_chunk = pl.DataFrame(EMPTY_CHUNK)
+    transform_load.process_trips(empty_chunk, mock_collection)
+    mock_collection.bulk_write.assert_not_called()
 
 
-@pytest.mark.asyncio
-async def test_process_locations_with_valid_data():
+def test_process_locations_with_valid_data():
     mock_collection = MagicMock()
-    mock_collection.bulk_write = AsyncMock()
     transform_load = TransformLoad2022()
-    await transform_load.process_locations(CHUNK, mock_collection)
-    mock_collection.bulk_write.assert_awaited_once()
+    transform_load.process_locations(CHUNK, mock_collection)
+    mock_collection.bulk_write.assert_called_once()
     args, _ = mock_collection.bulk_write.call_args
     operations = args[0]
     assert len(operations) > 0
@@ -104,52 +96,46 @@ async def test_process_locations_with_valid_data():
         assert isinstance(op, UpdateOne)
 
 
-@pytest.mark.asyncio
-async def test_process_locations_with_empty_data():
+def test_process_locations_with_empty_data():
     mock_collection = MagicMock()
-    mock_collection.bulk_write = AsyncMock()
     transform_load = TransformLoad2022()
-    await transform_load.process_locations(EMPTY_CHUNK, mock_collection)
-    mock_collection.bulk_write.assert_not_awaited()
+    transform_load.process_locations(EMPTY_CHUNK, mock_collection)
+    mock_collection.bulk_write.assert_not_called()
 
 
 def test_prepare_location_data_unique_stations():
     transform_load = TransformLoad2022()
-    expected_df = pd.DataFrame(
+    expected_df = pl.DataFrame(
         {
-            "name": ["Station A", "Station B", "Station C"],
+            "name": ["station a", "station b", "station c"],
             "arrondissement": [
-                "Arrondissement 1",
-                "Arrondissement 2",
-                "Arrondissement 3",
+                "arrondissement 1",
+                "arrondissement 2",
+                "arrondissement 3",
             ],
             "latitude": [45.1, 45.2, 45.3],
             "longitude": [-73.1, -73.2, -73.3],
         }
     )
     result_df = transform_load.prepare_location_data(CHUNK)
-    pd.testing.assert_frame_equal(
-        result_df.reset_index(drop=True), expected_df.reset_index(drop=True)
-    )
+    assert_frame_equal(result_df, expected_df, check_row_order=False)
 
 
 def test_prepare_location_data_empty_chunk():
     transform_load = TransformLoad2022()
-    expected_df = pd.DataFrame(
-        columns=["name", "arrondissement", "latitude", "longitude"]
+    expected_df = pl.DataFrame(
+        schema=["name", "arrondissement", "latitude", "longitude"]
     )
     result_df = transform_load.prepare_location_data(EMPTY_CHUNK)
-    pd.testing.assert_frame_equal(
-        result_df.reset_index(drop=True), expected_df.reset_index(drop=True)
-    )
+    assert_frame_equal(result_df, expected_df, check_row_order=False)
 
 
 def test_create_location_update_operations_types_and_values():
     transform_load = TransformLoad2022()
-    stations = pd.DataFrame(
+    stations = pl.DataFrame(
         {
-            "name": ["Station A", "Station B"],
-            "arrondissement": ["Arrondissement 1", "Arrondissement 2"],
+            "name": ["station a", "station b"],
+            "arrondissement": ["arrondissement 1", "arrondissement 2"],
             "latitude": [45.1, 45.2],
             "longitude": [-73.1, -73.2],
         }
@@ -159,32 +145,31 @@ def test_create_location_update_operations_types_and_values():
         assert isinstance(op, UpdateOne)
 
 
-@pytest.mark.asyncio
-async def test_get_highest_starttimems():
-    db_collection = AsyncMock()
-    db_collection.find_one = AsyncMock(return_value={"STARTTIMEMS": 1000})
+def test_get_highest_starttimems():
+    db_collection = MagicMock()
+    db_collection.find_one = MagicMock(return_value={"starttimems": 1000})
     transform_load = TransformLoad2022()
-    result = await transform_load.get_highest_starttimems(db_collection)
+    result = transform_load.get_highest_starttimems(db_collection)
     assert result == 1000
-    db_collection.find_one.assert_awaited_with(
-        sort=[("STARTTIMEMS", -1)], projection={"STARTTIMEMS": 1}
+    db_collection.find_one.assert_called_with(
+        sort=[("starttimems", -1)], projection={"starttimems": 1}
     )
 
 
 def test_map():
     transform_load = TransformLoad2022()
     columns = [
-        "STARTSTATIONNAME",
-        "STARTSTATIONARRONDISSEMENT",
-        "STARTSTATIONLATITUDE",
-        "STARTSTATIONLONGITUDE",
+        "startstationname",
+        "startstationarrondissement",
+        "startstationlatitude",
+        "startstationlongitude",
     ]
     db_columns = ["name", "arrondissement", "latitude", "longitude"]
     expected_result = {
-        "STARTSTATIONNAME": "name",
-        "STARTSTATIONARRONDISSEMENT": "arrondissement",
-        "STARTSTATIONLATITUDE": "latitude",
-        "STARTSTATIONLONGITUDE": "longitude",
+        "startstationname": "name",
+        "startstationarrondissement": "arrondissement",
+        "startstationlatitude": "latitude",
+        "startstationlongitude": "longitude",
     }
     result = transform_load.map(columns, db_columns)
     assert result == expected_result
