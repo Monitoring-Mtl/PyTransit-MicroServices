@@ -64,7 +64,8 @@ def lambda_handler(event, context):
     eastern = pytz.timezone(timezone_str)
 
     # Extract the date from the event, or use the current date in the specified timezone (Format YYYYMMDD)
-    date_str = event.get('date', datetime.now(eastern).strftime('%Y%m%d'))
+    analyzed_day = datetime.now(eastern) - timedelta(days=2)#we remove two days, because the analysis data is only available two days after
+    date_str = event.get('date', analyzed_day.strftime('%Y%m%d'))
 
     # Parse the date string into a datetime object
     date_obj = datetime.strptime(date_str, '%Y%m%d')
@@ -107,3 +108,4 @@ def lambda_handler(event, context):
     daily_data = daily_data.select(['trip_id', 'stop_id', 'previous_stop_id', 'offset_difference', 'Current_Occupancy', 'arrival_time_unix'])
 
     save_dataframe_to_db(event, daily_data)
+    
