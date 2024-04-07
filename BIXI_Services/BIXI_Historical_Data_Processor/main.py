@@ -10,6 +10,7 @@ import polars as pl
 import requests
 from pydantic import BaseModel
 from pymongo import InsertOne, MongoClient, UpdateOne
+from pymongo.collection import Collection
 
 
 class Config(BaseModel):
@@ -50,54 +51,47 @@ class TransformLoad2014(TransformLoadStrategy):
         raise NotImplementedError("TransformLoad2014 transform_load not implemented.")
 
 
+def map(left: list[str], right: list[str]):
+    return {item_l: item_r for item_l, item_r in zip(left, right)}
+
+
+def validate_columns(df: pl.DataFrame, columns: list[str]):
+    df_columns_lower = [c.lower() for c in df.columns]
+    columns_lower = [c.lower() for c in columns]
+    return all(c in df_columns_lower for c in columns_lower)
+
+
 class TransformLoad2022(TransformLoadStrategy):
-    required_columns = [
-        "startstationname",
-        "startstationarrondissement",
-        "startstationlatitude",
-        "startstationlongitude",
-        "endstationname",
-        "endstationarrondissement",
-        "endstationlatitude",
-        "endstationlongitude",
-        "starttimems",
-        "endtimems",
+    start_columns = [
+        "startStationName",
+        "startStationArrondissement",
+        "startStationLatitude",
+        "startStationLongitude",
     ]
-
-    start_location_columns = [
-        "startstationname",
-        "startstationarrondissement",
-        "startstationlatitude",
-        "startstationlongitude",
+    end_columns = [
+        "endStationName",
+        "endStationArrondissement",
+        "endStationLatitude",
+        "endStationLongitude",
     ]
-
-    end_location_columns = [
-        "endstationname",
-        "endstationarrondissement",
-        "endstationlatitude",
-        "endstationlongitude",
+    time_columns = ["startTimeMs", "endTimeMs"]
+    location_columns_db = ["name", "arrondissement", "latitude", "longitude"]
+    trip_columns_db = [
+        "startStationName",
+        "endStationName",
+        "startTimeMs",
+        "endTimeMs",
+        "durationMs",
     ]
-
-    location_columns = ["name", "arrondissement", "latitude", "longitude"]
-
-    trip_columns = [
-        "startstationname",
-        "endstationname",
-        "starttimems",
-        "endtimems",
-        "durationms",
-    ]
-
-    def map(self, columns, db_colums=location_columns):
-        return {column: name for column, name in zip(columns, db_colums)}
 
     def transform_load(self, csv_files, config):
-        # db objects
+        # vars
         db = MongoClient(config.ATLAS_URI)[config.MONGO_DATABASE_NAME]
         col_trips = db[config.BIXI_TRIP_COLLECTION]
         col_locations = db[config.BIXI_LOCATION_COLLECTION]
+        required_columns = self.start_columns + self.end_columns + self.time_columns
+        max_time = self.get_highest_starttimems(col_trips)
         # start
-        max_starttimems = self.get_highest_starttimems(col_trips)
         for file in csv_files:
             file = os.path.abspath(file)
             # ensure file exists
@@ -105,9 +99,7 @@ class TransformLoad2022(TransformLoadStrategy):
                 print(file, "doesn't exist.")
                 continue
             # ensure the csv has the right columns
-            header = pl.read_csv(file, n_rows=0)
-            columns = [c.lower() for c in header.columns]
-            if not all(column in columns for column in self.required_columns):
+            if not validate_columns(pl.read_csv(file, n_rows=0), required_columns):
                 print(f"CSV file {file} does not contain required columns.")
                 continue
             # read & process
@@ -116,32 +108,31 @@ class TransformLoad2022(TransformLoadStrategy):
             while True:
                 chunks = reader.next_batches(1)
                 if not chunks:
+                    print("no more chunk")
                     break
                 chunk = chunks[0]
-                chunk = chunk.rename(self.map(chunk.columns, self.required_columns))
-                if max_starttimems is not None:
-                    chunk = chunk.filter(pl.col("starttimems") > int(max_starttimems))
+                chunk = chunk.rename(map(chunk.columns, required_columns))
+                if max_time:
+                    chunk = chunk.filter(pl.col("startTimeMs") > int(max_time))
                 self.process_locations(chunk, col_locations)
                 self.process_trips(chunk, col_trips)
 
-    def get_highest_starttimems(self, col):
-        doc = col.find_one(sort=[("starttimems", -1)], projection={"starttimems": 1})
-        return doc["starttimems"] if doc else None
+    def get_highest_starttimems(self, c: Collection):
+        doc = c.find_one(sort=[("startTimeMs", -1)], projection={"startTimeMs": 1})
+        return doc["startTimeMs"] if doc else None
 
-    def process_locations(self, chunk, collection):
+    def process_locations(self, chunk: pl.DataFrame, c: Collection):
         locations = self.prepare_location_data(chunk)
         if operations := self.create_location_update_operations(locations):
-            collection.bulk_write(operations, ordered=False)
+            c.bulk_write(operations, ordered=False)
 
     def prepare_location_data(self, chunk: pl.DataFrame):
+        start_map = map(self.start_columns, self.location_columns_db)
+        end_map = map(self.end_columns, self.location_columns_db)
         return (
-            chunk[self.start_location_columns]
-            .rename(self.map(self.start_location_columns))
-            .vstack(
-                chunk[self.end_location_columns].rename(
-                    self.map(self.end_location_columns)
-                )
-            )
+            chunk[self.start_columns]
+            .rename(start_map)
+            .vstack(chunk[self.end_columns].rename(end_map))
         ).unique(subset=["name"])
 
     def create_location_update_operations(self, locations: pl.DataFrame):
@@ -168,9 +159,9 @@ class TransformLoad2022(TransformLoadStrategy):
 
     def prepare_trip_data(self, chunk: pl.DataFrame):
         chunk = chunk.with_columns(
-            (pl.col("endtimems") - pl.col("starttimems")).alias("durationms")
+            (pl.col("endTimeMs") - pl.col("startTimeMs")).alias("durationMs")
         )
-        return chunk[self.trip_columns]
+        return chunk[self.trip_columns_db]
 
 
 def handler(event, context):
