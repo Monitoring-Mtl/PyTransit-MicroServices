@@ -48,7 +48,7 @@ class TestLambdaHandler(TestCase):
     @patch('STM_Services.STM_Fetch_Update_GTFS_Static_files.main.requests.head')
     @patch('STM_Services.STM_Fetch_Update_GTFS_Static_files.main.boto3.client')
     @patch('STM_Services.STM_Fetch_Update_GTFS_Static_files.main.os.remove')
-    def test_file_needs_update(self, mock_os_remove, mock_boto_client, mock_requests_head, mock_requests_get, mock_file_open, mock_zip):
+    def test_file_needs_update(self, mock_os_remove, mock_boto_client, mock_requests_head, mock_requests_get, mock_file_open, mock_zipfile):
         s3_mock = MagicMock()
         mock_boto_client.return_value = s3_mock
         mock_last_modified_in_s3 = MagicMock()
@@ -65,6 +65,10 @@ class TestLambdaHandler(TestCase):
 
         mock_os_remove = MagicMock()
         mock_os_remove.return_value = None
+
+        mock_zipfile_instance = MagicMock()
+        mock_zipfile.return_value = mock_zipfile_instance
+        mock_zipfile_instance.namelist.return_value = ['test.txt']
 
         event = {'bucket_name': 'test_bucket', 'url': 'https://example.com/test.zip'}
 
