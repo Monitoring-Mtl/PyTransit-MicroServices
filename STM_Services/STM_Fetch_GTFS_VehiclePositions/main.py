@@ -12,6 +12,7 @@ s3 = boto3.client('s3')
 
 
 def lambda_handler(event, context): 
+    
     api_url = os.environ.get('API_URL_STM_VEHICLE')
     api_key = os.environ.get('API_KEY_STM')
 
