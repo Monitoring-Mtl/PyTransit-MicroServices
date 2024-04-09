@@ -27,8 +27,6 @@ class TestLambdaHandler(TestCase):
         mock_requests_get.return_value = mock_response_get
 
         mock_datetime.strptime.return_value = datetime.datetime(2020, 10, 21, 7, 28)
-
-        # Simulate the zipfile and its contents
         mock_zipfile_instance = MagicMock()
         mock_zipfile.return_value = mock_zipfile_instance
         mock_zipfile_instance.__enter__.return_value.namelist.return_value = ['test.txt']

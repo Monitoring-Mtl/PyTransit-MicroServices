@@ -1,6 +1,6 @@
-from datetime import datetime, timezone
+from datetime import datetime
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 import polars as pl
 import pytz
 import tempfile

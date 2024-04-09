@@ -2,9 +2,7 @@ from datetime import datetime, timezone
 import unittest
 import polars as pl
 import pytz
-import tempfile
-import os
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from STM_Services.STM_Analyse_Daily_Stops_Data.main import download_file_to_tmp, upload_file_from_tmp, lambda_handler, adding_arrival_time_unix
 
 class TestLambdaFunction(unittest.TestCase):
