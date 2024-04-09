@@ -6,11 +6,9 @@ import concurrent.futures
 from datetime import datetime
 import pytz
 
-# Initialize Boto3 S3 client
-s3 = boto3.client('s3')
-
 
 def lambda_handler(event, context):
+    s3 = boto3.client('s3')
     input_bucket = event['input_bucket'] 
     output_bucket = event['output_bucket']
     timezone = event.get('timezone', 'America/Montreal')  # Default to 'America/Montreal' if not specified
@@ -66,7 +64,7 @@ def lambda_handler(event, context):
 
 
 def download_from_s3(bucket_name, file_key):
-
+    s3 = boto3.client('s3')
     try:
         response = s3.get_object(Bucket=bucket_name, Key=file_key)
         return pl.read_parquet(io.BytesIO(response['Body'].read()))
@@ -76,7 +74,7 @@ def download_from_s3(bucket_name, file_key):
 
 
 def upload_to_s3(bucket_name, key, dataframe):
-
+    s3 = boto3.client('s3')
     temp_file_path = '/tmp/file.parquet'
 
     try:
