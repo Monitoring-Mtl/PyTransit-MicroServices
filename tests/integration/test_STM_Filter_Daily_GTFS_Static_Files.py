@@ -10,7 +10,7 @@ class TestLambdaHandler(TestCase):
     @patch('STM_Services.STM_Filter_Daily_GTFS_Static_files.main.os.remove')
     @patch('STM_Services.STM_Filter_Daily_GTFS_Static_files.main.pl.read_parquet')
     @patch('STM_Services.STM_Filter_Daily_GTFS_Static_files.main.datetime', wraps=datetime)
-    @patch('polars.DataFrame.write_parquet')  # Mocking Polars' write_parquet directly
+    @patch('polars.DataFrame.write_parquet')  
     def test_lambda_handler(self, mock_write_parquet, mock_datetime, mock_read_parquet, mock_os_remove, mock_boto3_client):    
         mock_s3 = mock.MagicMock()
         mock_boto3_client.return_value = mock_s3
