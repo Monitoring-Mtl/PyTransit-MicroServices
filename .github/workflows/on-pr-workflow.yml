@@ -7,9 +7,9 @@ on:
 
   # Allows the manual execution of the workflow from the Action tab
   workflow_dispatch:
-   inputs:
+    inputs:
       enable_deployment:
-        description: 'Deploy to GitHub Pages? (true/false)'
+        description: "Deploy to GitHub Pages? (true/false)"
         required: false
         default: false
         type: boolean
@@ -27,6 +27,7 @@ jobs:
     uses: ./.github/workflows/lint-test-workflow.yml
     with:
       deploy: ${{ github.event.inputs.enable_deployment }}
+    secrets: inherit
 
   security-and-analysis:
     name: Security and code analysis
