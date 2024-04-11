@@ -511,7 +511,18 @@ Resources:
 
 
 ####################### ANALYZE SEGMENTS #######################
-  STMAnalyzeDailyStopsData:
+  STMAnalyzeSegmentsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+
+  STMAnalyzeSegments:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       Description: "Analyze the time we gain back between each bus station"
@@ -527,6 +538,27 @@ Resources:
             API_URL_STM_TRIP: !Ref ApiUrlStmTrip
             API_URL_STM_VEHICLE: !Ref ApiUrlStmVehicle
             API_KEY_STM: !Ref ApiKeyStm
+  
+  STMAnalyzeSegmentsPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: STMAnalyzeSegmentsPolicy
+      Roles:
+        - !Ref STMAnalyzeSegmentsRole
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Resource: 
+              !Join 
+              - ""
+              - - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/"
+                - !Select [1, !Split [":function:", !GetAtt STMAnalyzeSegments.Arn]]
+                - ":*"
 
   STMAnalyzeSegmentsDataVersion:
     Condition: SetSTMAnalyzeSegmentsData
