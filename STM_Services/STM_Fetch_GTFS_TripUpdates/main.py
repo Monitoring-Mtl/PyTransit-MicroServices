@@ -8,14 +8,13 @@ from datetime import datetime
 import pytz
 import os
 
-api_url = os.environ.get('API_URL_STM_TRIP')
-api_key = os.environ.get('API_KEY_STM')
-
 # Set up S3
 s3 = boto3.client('s3')
 
 
 def lambda_handler(event, context): 
+    api_url = os.environ.get('API_URL_STM_TRIP')
+    api_key = os.environ.get('API_KEY_STM')
 
     bucket_name = event['bucket_name']
     timezone = event.get('timezone', 'America/Montreal')  # Default to 'America/Montreal' if not specified
