@@ -4,11 +4,12 @@ import os
 import pytz
 from datetime import datetime
 
-# Init S3 client
-s3 = boto3.client('s3')
+
 
 # Autodeploy
 def lambda_handler(event, context):
+    # Init S3 client
+    s3 = boto3.client('s3')
 
     # Define the buckets and file paths
     input_bucket = event['input_bucket']

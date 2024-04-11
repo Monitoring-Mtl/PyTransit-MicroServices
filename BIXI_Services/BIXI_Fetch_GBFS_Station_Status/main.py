@@ -3,15 +3,16 @@ import boto3
 import os
 import pandas as pd
 import pytz
-import fastparquet
 from datetime import datetime
 from urllib.request import Request, urlopen
 
-# Set up S3 client
-s3 = boto3.client('s3')
 
 def lambda_handler(event, context):
+    s3 = boto3.client('s3')
+
     bucket_name = event['bucket_name']
+    temp_file_path = event.get('file_path', '/tmp/file.parquet')
+
     eastern = pytz.timezone('America/Toronto')
     now = datetime.now(eastern)
     fetch_time_unix = int(now.timestamp())
@@ -33,7 +34,6 @@ def lambda_handler(event, context):
     df = pd.DataFrame(data_dict["data"]["stations"])
 
     # Save Dataframe 
-    temp_file_path = '/tmp/file.parquet'
     df.to_parquet(temp_file_path, compression="gzip")
 
     # Define S3 object name

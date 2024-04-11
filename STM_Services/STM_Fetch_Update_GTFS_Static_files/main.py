@@ -6,12 +6,13 @@ from io import BytesIO
 import polars as pl
 import datetime
 
-s3 = boto3.client('s3')
 
 LAST_MODIFIED_KEY = "Last_modified.txt"
 
 
 def lambda_handler(event, context):
+    s3 = boto3.client('s3')
+    LAST_MODIFIED_KEY = "Last_modified.txt"
     bucket_name = event['bucket_name']
     url = event['url']
 

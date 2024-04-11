@@ -25,7 +25,7 @@ def lambda_handler(event, context):
 
     # Parse the date string into a datetime object
     date_obj = datetime.strptime(date_str, '%Y%m%d')
-    date_obj = eastern.localize(date_obj)
+    date_obj = eastern.localize(date_obj)- timedelta(days=2)
 
     next_day = date_obj + timedelta(days=1)
 
@@ -122,6 +122,7 @@ def download_file_to_tmp(bucket, key, local_file_name):
     :param local_file_name: the path where to store it locally
     :return: the local path if success, none if failed.
     """
+    s3 = boto3.client('s3')
     local_path = local_file_name
     try:
         s3.download_file(Bucket=bucket, Key=key, Filename=local_path)
