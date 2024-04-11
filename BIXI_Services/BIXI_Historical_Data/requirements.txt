@@ -1,9 +1,0 @@
-beautifulsoup4
-pandas
-pymongo[srv]
-python-dotenv
-requests
-pydantic
-polars
-tqdm
-motor

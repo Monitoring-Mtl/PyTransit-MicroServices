@@ -13,7 +13,7 @@ loop for each url, year
     handler -> cdn: get data
     activate cdn
     return zip file
-    handler -> handler: extract csv file
+    handler -> handler: extract csv files
     handler -> context **: create(year)
     context -> strategy **: create based on year
     handler -> context: execute_transform_load(csv filenames)
