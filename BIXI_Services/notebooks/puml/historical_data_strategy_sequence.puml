@@ -1,0 +1,12 @@
+@startuml strategysequence
+participant ":TransformLoadContext" as context
+participant ":TransformLoad2022" as s2022
+participant ":TransformLoad2014" as s2014
+
+alt year >= 2022
+    context -> s2022 **: create 
+else
+    context -> s2014 **: create
+    note right: not yet implemented
+end
+@enduml

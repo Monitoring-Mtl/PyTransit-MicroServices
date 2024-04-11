@@ -200,7 +200,8 @@ bucket S3, dans un répertoire correspondant à la date de la journée.
 
 ### Prérequis
 
-Important d'avoir Python 3.8 ou plus récente d'installer, si non, [cliquez-ici](https://docs.python.org/3.8/)
+- python3.11
+- aws cli
 
 ### Installation
 
@@ -211,13 +212,14 @@ _Vous trouverez ci-bas un exemple de la procédure pour installer le projet loca
    ```sh
    git clone https://github.com/Monitoring-Mtl/PyTransit-MicroServices.git
    ```
-3. Install NPM packages
+3. Construire le paquet
    ```sh
-   npm install
+   cd PyTransit-MicroServices
+   sam build
    ```
 4. Lancer le serverless local
    ```sh
-   npm run offline
+   sam local start-api
    ```
 
 <p align="right">(<a href="#readme-top">haut</a>)</p>

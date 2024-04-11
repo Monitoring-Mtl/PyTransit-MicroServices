@@ -1,0 +1,19 @@
+@startuml checkersequence
+participant "handler" as handler
+participant "https://bixi.com/en/open-data/" as website
+database "MongoDB" as mongo
+
+-> handler: trigger
+activate handler
+handler -> website : get
+activate website
+return webpage
+
+handler -> handler : extract historic data urls & years
+
+handler -> mongo : get saved urls
+activate mongo
+return saved urls
+handler -> handler: find new urls
+return new urls, years
+@enduml
