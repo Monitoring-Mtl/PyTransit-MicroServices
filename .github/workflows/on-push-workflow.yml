@@ -48,8 +48,8 @@ jobs:
           STMFetchUpdateStatic=$(jq -r '.STMFetchUpdateGTFSStaticfiles' functions.json)
           STMFilterDailyStatic=$(jq -r '.STMFilterDailyGTFStaticfiles' functions.json)
           STMMergeDailyVehiclePosition=$(jq -r '.STMMergeDailyGTFSVechiclePositions' functions.json)
-          BixiHistoricDataChecker=$(jq -r '.BixiHistoricDataCheckerLambda' function.json)
-          BixiHistoricDataProcessor=$(jq -r '.BixiHistoricDataProcessorLambda' function.json)
+          BixiHistoricDataChecker=$(jq -r '.BixiHistoricDataCheckerLambda' functions.json)
+          BixiHistoricDataProcessor=$(jq -r '.BixiHistoricDataProcessorLambda' functions.json)
           today=$(date '+%Y-%m-%d')
           # Set environment variables
           echo "BIXI=$BIXI" >> $GITHUB_ENV
