@@ -122,6 +122,7 @@ def download_file_to_tmp(bucket, key, local_file_name):
     :param local_file_name: the path where to store it locally
     :return: the local path if success, none if failed.
     """
+    s3 = boto3.client('s3')
     local_path = local_file_name
     try:
         s3.download_file(Bucket=bucket, Key=key, Filename=local_path)

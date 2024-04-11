@@ -4,6 +4,9 @@ boto3
 requests
 pymongo[srv]
 beautifulsoup4
-polars
 pydantic
-pytest-asyncio
+pandas
+fastparquet
+polars
+gtfs-realtime-bindings
+protobuf
