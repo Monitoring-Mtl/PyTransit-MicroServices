@@ -1,0 +1,31 @@
+@startuml transformload2022
+participant ":TransformLoad2022" as strategy
+participant ":BatchedCsvReader" as reader
+collections "chunk:DataFrame" as chunk
+database "MongoDB" as db
+
+-> strategy: transform_load(csv filenames)
+activate strategy
+strategy -> db: get latest trip date
+loop for each csv
+    strategy -> strategy: validate csv columns
+    strategy -> reader**: create
+    loop for chunks in csv
+        strategy -> reader: read next chunk
+        activate reader
+        reader -> chunk**: create
+        return chunk
+        deactivate reader
+        strategy -> chunk: rename columns
+        strategy -> chunk: filter out trips older than latest trip date
+        strategy -> chunk: extract unique locations
+        strategy -> db: load unique locations
+        strategy -> chunk: calculate new column durationMs
+        strategy -> chunk: filter out location columns except station nanes
+        strategy -> db: load trips
+    end
+end
+<-- strategy
+deactivate strategy
+
+@enduml

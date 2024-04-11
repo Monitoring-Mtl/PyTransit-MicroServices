@@ -6,7 +6,7 @@ participant BixiHistoricDataProcessorLambda
 loop Every Month
     BixiHistoricDataWorkflow -> BixiHistoricDataCheckerLambda: handler
     activate BixiHistoricDataCheckerLambda
-    return: process, urls
+    return process, urls
     alt process == true
         BixiHistoricDataWorkflow -> BixiHistoricDataProcessorLambda: handler(urls)
     end
