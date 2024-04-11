@@ -105,7 +105,7 @@ def lambda_handler(event, context):
     daily_data = daily_data.cast({'offset_difference': pl.Int64})
 
     # Select only relevant columns before saving to database
-    daily_data = daily_data.select(['stop_id', 'previous_stop_id', 'offset_difference', 'Current_Occupancy', 'arrival_time_unix', 'trip_id'])
+    daily_data = daily_data.select(['stop_id', 'routeId', 'previous_stop_id', 'offset_difference', 'Current_Occupancy', 'arrival_time_unix', 'trip_id'])
     save_dataframe_to_db(event, daily_data, 15)
 
 if __name__ == '__main__':
