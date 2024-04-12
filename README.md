@@ -200,7 +200,7 @@ bucket S3, dans un répertoire correspondant à la date de la journée.
 
 ### Prérequis
 
-- python3.11
+- python3.9
 - aws cli
 
 ### Installation
