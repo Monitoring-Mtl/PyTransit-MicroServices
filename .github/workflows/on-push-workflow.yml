@@ -94,7 +94,7 @@ jobs:
             BixiLocationCollection=$BIXI_LOCATION_COLLECTION \
             BixiTripCollection=$BIXI_TRIP_COLLECTION \
             BixiChunkSize=$BIXI_CHUNK_SIZE \
-            UpdateCheck="${BIXI},${STMAnalyzeDailyStop},${STMCreateDailyStop},${STMFetchTripUpdates},${STMFetchVehiclePositions},${STMFetchUpdateStatic},${STMFilterDailyStatic},${STMMergeDailyVehiclePosition}"
+            UpdateCheck="${BIXI},${STMAnalyzeDailyStop},${STMCreateDailyStop},${STMFetchTripUpdates},${STMFetchVehiclePositions},${STMFetchUpdateStatic},${STMFilterDailyStatic},${STMMergeDailyVehiclePosition},${BixiHistoricDataChecker},${BixiHistoricDataProcessor}"
 
       - name: Delete JSON File
         run: rm functions.json
