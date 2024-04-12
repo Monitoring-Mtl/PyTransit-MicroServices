@@ -377,7 +377,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.11
+      Runtime: python3.9
       CodeUri: BIXI_Services/BIXI_Historical_Data_Checker/
       MemorySize: 128
       Timeout: 60
@@ -448,7 +448,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.11
+      Runtime: python3.9
       CodeUri: BIXI_Services/BIXI_Historical_Data_Processor/
       MemorySize: 8192
       EphemeralStorage:
