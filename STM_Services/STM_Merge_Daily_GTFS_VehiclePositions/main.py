@@ -3,14 +3,12 @@ import os
 import io
 import polars as pl
 import concurrent.futures
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
-
-# Initialize Boto3 S3 client
-s3 = boto3.client('s3')
 
 
 def lambda_handler(event, context):
+    s3 = boto3.client('s3')
     input_bucket = event['input_bucket'] 
     output_bucket = event['output_bucket']
     timezone = event.get('timezone', 'America/Montreal')  # Default to 'America/Montreal' if not specified
@@ -22,7 +20,9 @@ def lambda_handler(event, context):
     # Extract the date from the event, or use the current date in the specified timezone
     date_str = event.get('date', datetime.now(eastern).strftime('%Y%m%d'))
 
+    # Parse the date string into a datetime object
     date_obj = datetime.strptime(date_str, '%Y%m%d')
+    date_obj = date_obj - timedelta(days=1)
     formatted_date = date_obj.strftime('%Y-%m-%d')
 
     # We use "Bucket/YYYY/MM/DD/... as a folder structure to benefit from Partition since our query will be mainly with based on date
@@ -66,7 +66,7 @@ def lambda_handler(event, context):
 
 
 def download_from_s3(bucket_name, file_key):
-
+    s3 = boto3.client('s3')
     try:
         response = s3.get_object(Bucket=bucket_name, Key=file_key)
         return pl.read_parquet(io.BytesIO(response['Body'].read()))
@@ -76,7 +76,7 @@ def download_from_s3(bucket_name, file_key):
 
 
 def upload_to_s3(bucket_name, key, dataframe):
-
+    s3 = boto3.client('s3')
     temp_file_path = '/tmp/file.parquet'
 
     try:

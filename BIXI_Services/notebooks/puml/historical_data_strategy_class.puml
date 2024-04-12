@@ -1,0 +1,23 @@
+@startuml strategyclass
+class TransformLoadContext {
+    strategy: TransformLoadStrategy
+    execute_transform_load()
+}
+
+abstract class TransformLoadStrategy {
+    transform_load()
+}
+
+class TransformLoad2022 {
+    transform_load()
+}
+
+class TransformLoad2014 {
+    transform_load()
+}
+
+TransformLoadContext --> TransformLoadStrategy
+TransformLoadStrategy <|-- TransformLoad2022
+TransformLoadStrategy <|-- TransformLoad2014
+
+@enduml

@@ -2,3 +2,11 @@ pytest
 flake8
 boto3
 requests
+pymongo[srv]
+beautifulsoup4
+pydantic
+pandas
+fastparquet
+polars
+gtfs-realtime-bindings
+protobuf

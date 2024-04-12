@@ -104,8 +104,12 @@ def lambda_handler(event, context):
 
 def download_file_to_tmp(bucket, key):
     local_path = f"/tmp/{os.path.basename(key)}"
-    s3_client.download_file(Bucket=bucket, Key=key, Filename=local_path)
-    return local_path
+    try:
+        s3_client.download_file(Bucket=bucket, Key=key, Filename=local_path)
+        return local_path
+    except Exception as e:
+        print(f'Error downloading file from {bucket}/{key}: {e}')
+        return False
 
 def upload_file_from_tmp(bucket, key, local_path):
     s3_client.upload_file(Filename=local_path, Bucket=bucket, Key=key)

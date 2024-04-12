@@ -1,0 +1,20 @@
+@startuml model
+class StationLocation {
+  id: string
+  arrondissement: string
+  latitude: float
+  longitude: float
+}
+
+class Trip {
+  id: string
+  startStationName: string
+  endStationName: string
+  startTimeMs: int
+  endTimeMs: int
+  durationMs: int
+}
+
+Trip "1" -> "2" StationLocation 
+
+@enduml

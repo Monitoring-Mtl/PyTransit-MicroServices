@@ -5,8 +5,8 @@ on:
     branches:
       - main
     paths:
-      - 'BIXI_Services/**'
-      - 'STM_Services/**'
+      - "BIXI_Services/**"
+      - "STM_Services/**"
   workflow_dispatch:
 
 concurrency:
@@ -25,7 +25,7 @@ jobs:
       - name: Set up Python 3.9
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
+          python-version: "3.9"
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1-node16
@@ -49,6 +49,9 @@ jobs:
           STMFilterDailyStatic=$(jq -r '.STMFilterDailyGTFStaticfiles' functions.json)
           STMMergeDailyVehiclePosition=$(jq -r '.STMMergeDailyGTFSVechiclePositions' functions.json)
           STMAnalyzeSegments=$(jq -r '.STMAnalyzeSegments' functions.json)
+          BixiHistoricDataChecker=$(jq -r '.BixiHistoricDataCheckerLambda' functions.json)
+          BixiHistoricDataProcessor=$(jq -r '.BixiHistoricDataProcessorLambda' functions.json)
+          today=$(date '+%Y-%m-%d')
           # Set environment variables
           echo "BIXI=$BIXI" >> $GITHUB_ENV
           echo "STMAnalyzeDailyStop=$STMAnalyzeDailyStop" >> $GITHUB_ENV
@@ -59,15 +62,41 @@ jobs:
           echo "STMFilterDailyStatic=$STMFilterDailyStatic" >> $GITHUB_ENV
           echo "STMMergeDailyVehiclePosition=$STMMergeDailyVehiclePosition" >> $GITHUB_ENV
           echo "STMAnalyzeSegments=$STMAnalyzeSegments" >> $GITHUB_ENV
+          echo "BixiHistoricDataChecker=$BixiHistoricDataChecker" >> $GITHUB_ENV
+          echo "BixiHistoricDataProcessor=$BixiHistoricDataProcessor" >> $GITHUB_ENV
+          echo "today=$today" >> $GITHUB_ENV
 
       - name: Build and Deploy to AWS
         env:
           API_KEY_STM: ${{ secrets.API_KEY_STM }}
           API_URL_STM_TRIP: ${{ secrets.API_URL_STM_TRIP }}
           API_URL_STM_VEHICLE: ${{ secrets.API_URL_STM_VEHICLE }}
+          ATLAS_URI: ${{ secrets.ATLAS_URI }}
+          MONGO_DATABASE_NAME: ${{ vars.MONGO_DATABASE_NAME }}
+          BIXI_DATA_URL: ${{ vars.BIXI_DATA_URL }}
+          BIXI_CDN: ${{ vars.BIXI_CDN }}
+          BIXI_URL_COLLECTION: ${{ vars.BIXI_URL_COLLECTION }}
+          BIXI_DEFAULT_EXTRACT_PATH: ${{ vars.BIXI_DEFAULT_EXTRACT_PATH }}
+          BIXI_LOCATION_COLLECTION: ${{ vars.BIXI_LOCATION_COLLECTION }}
+          BIXI_TRIP_COLLECTION: ${{ vars.BIXI_TRIP_COLLECTION }}
+          BIXI_CHUNK_SIZE: ${{ vars.BIXI_CHUNK_SIZE }}
         run: |
           sam build
-          sam deploy --parameter-overrides ApiUrlStmTrip=$API_URL_STM_TRIP ApiKey=$API_KEY_STM ApiUrlStmVehicle=$API_URL_STM_VEHICLE UpdateCheck="${BIXI},${STMAnalyzeSegments},${STMAnalyzeDailyStop},${STMCreateDailyStop},${STMFetchTripUpdates},${STMFetchVehiclePositions},${STMFetchUpdateStatic},${STMFilterDailyStatic},${STMMergeDailyVehiclePosition}"
+          sam deploy --parameter-overrides \
+            ApiUrlStmTrip=$API_URL_STM_TRIP \
+            ApiKey=$API_KEY_STM \
+            ApiUrlStmVehicle=$API_URL_STM_VEHICLE \
+            Date=$today \
+            AtlasUri=$ATLAS_URI \
+            MongoDatabaseName=$MONGO_DATABASE_NAME \
+            BixiDataUrl=$BIXI_DATA_URL \
+            BixiCdn=$BIXI_CDN \
+            BixiUrlCollection=$BIXI_URL_COLLECTION \
+            BixiDefaultExtractPath=$BIXI_DEFAULT_EXTRACT_PATH \
+            BixiLocationCollection=$BIXI_LOCATION_COLLECTION \
+            BixiTripCollection=$BIXI_TRIP_COLLECTION \
+            BixiChunkSize=$BIXI_CHUNK_SIZE \
+            UpdateCheck="${BIXI},${STMAnalyzeDailyStop},${STMCreateDailyStop},${STMFetchTripUpdates},${STMAnalyzeSegments},${STMFetchVehiclePositions},${STMFetchUpdateStatic},${STMFilterDailyStatic},${STMMergeDailyVehiclePosition},${BixiHistoricDataChecker},${BixiHistoricDataProcessor}"
 
       - name: Delete JSON File
         run: rm functions.json
