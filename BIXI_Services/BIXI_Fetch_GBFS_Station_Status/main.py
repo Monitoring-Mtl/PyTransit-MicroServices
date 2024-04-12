@@ -59,13 +59,11 @@ def lambda_handler(event, context):
 
     # Write to Mongo
     mongoClient = MongoClient(atlas_uri, server_api=ServerApi('1'), tls=True, tlsAllowInvalidCertificates=True)
-    document_name = f'gbfs_data_station_status_{fetch_time_unix}'
     try:
-        document = { "document_name": document_name, "stations": stations }
         db = mongoClient[db_name]
         collection = db[collection_name]
-        inserted = collection.insert_one(document)
-        print(f"inserted document with id: {inserted.inserted_id}")
+        collection.insert_many(stations)
+        print("inserted documents")
     except Exception as e:
         print(f"Mongo insert returned an error: {e}")
 
