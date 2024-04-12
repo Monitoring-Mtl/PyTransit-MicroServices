@@ -106,7 +106,7 @@ def lambda_handler(event, context):
 
     # Select only relevant columns before saving to database
     daily_data = daily_data.select(['stop_id', 'routeId', 'previous_stop_id', 'offset_difference', 'Current_Occupancy', 'arrival_time_unix', 'trip_id'])
-    save_dataframe_to_db(event, daily_data, 15)
+    save_dataframe_to_db(event, daily_data)
 
 if __name__ == '__main__':
     event = {}
