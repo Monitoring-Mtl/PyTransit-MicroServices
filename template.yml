@@ -130,6 +130,7 @@ Resources:
           Input: >-
             {
               "bucket_name": "monitoring-mtl-stm-gtfs-trip-updates",
+              "collection_name": "stm-gtfs-trip-updates"
               "timezone": "America/Montreal"
             }
   
