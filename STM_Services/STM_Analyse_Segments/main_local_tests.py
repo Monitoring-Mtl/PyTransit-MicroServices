@@ -22,6 +22,13 @@ def download_file_to_tmp(bucket, key):
     s3.download_file(Bucket=bucket, Key=key, Filename=local_path)
     return local_path
 
+def get_static_trips():
+    file_key = 'trips/trips.parquet'
+    bucket = 'monitoring-mtl-gtfs-static'
+    static_trips = download_from_s3(bucket, file_key)
+    return static_trips
+
+
 def download_from_s3(bucket_name, file_key):
     try:
         response = s3.get_object(Bucket=bucket_name, Key=file_key)
@@ -106,7 +113,26 @@ def lambda_handler(event, context):
 
     # Select only relevant columns before saving to database
     daily_data = daily_data.select(['stop_id', 'routeId', 'previous_stop_id', 'offset_difference', 'Current_Occupancy', 'arrival_time_unix', 'trip_id'])
-    save_dataframe_to_db(event, daily_data)
+
+    #Get the static trips from S3
+    df_static_trips = get_static_trips()
+
+    # Aggregate to get unique route_id to shape_id mapping
+    df_route_shape_map = df_static_trips.group_by("route_id").agg([
+        pl.col("shape_id").first().alias("shape_id")
+    ])
+
+    # Merge to get shape_id associated with each routeId in daily_data
+    df_merged = daily_data.join(
+        df_route_shape_map,
+        left_on="routeId",
+        right_on="route_id",
+        how="left"
+    ).select(
+        daily_data.columns + [pl.col("shape_id")]
+    )
+
+    save_dataframe_to_db(event, df_merged)
 
 if __name__ == '__main__':
     event = {}

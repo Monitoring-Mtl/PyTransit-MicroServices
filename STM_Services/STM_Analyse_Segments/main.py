@@ -25,6 +25,12 @@ def download_from_s3(bucket_name, file_key):
     except Exception as e:
         print(f"Error downloading file {file_key} from S3: {e}")
         return None
+    
+def get_static_trips():
+    file_key = 'trips/trips.parquet'
+    bucket = 'monitoring-mtl-gtfs-static'
+    static_trips = download_from_s3(bucket, file_key)
+    return static_trips
 
 def get_daily_parquet_file(bucket_name, prefix):
 
@@ -107,5 +113,23 @@ def lambda_handler(event, context):
     # Select only relevant columns before saving to database
     daily_data = daily_data.select(['trip_id', 'routeId', 'stop_id', 'previous_stop_id', 'offset_difference', 'Current_Occupancy', 'arrival_time_unix'])
 
-    save_dataframe_to_db(event, daily_data)
+    #Get the static trips from S3
+    df_static_trips = get_static_trips()
+
+    # Aggregate to get unique route_id to shape_id mapping
+    df_route_shape_map = df_static_trips.group_by("route_id").agg([
+        pl.col("shape_id").first().alias("shape_id")
+    ])
+
+    # Merge to get shape_id associated with each routeId in daily_data
+    df_merged = daily_data.join(
+        df_route_shape_map,
+        left_on="routeId",
+        right_on="route_id",
+        how="left"
+    ).select(
+        daily_data.columns + [pl.col("shape_id")]
+    )
+
+    save_dataframe_to_db(event, df_merged)
     
