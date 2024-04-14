@@ -72,7 +72,7 @@ Conditions:
   SetSTMMergeDailyGTFSVechiclePositions: !Not [!Equals [!Select [7, !Ref UpdateCheck], "0"]]
   SetBixiHistoricDataCheckerLambda: !Not [!Equals [!Select [8, !Ref UpdateCheck], "0"]]
   SetBixiHistoricDataProcessorLambda: !Not [!Equals [!Select [9, !Ref UpdateCheck], "0"]]
-  STMAnalyzeSegments: !Not [!Equals [!Select [10, !Ref UpdateCheck], "0"]]
+  STMAnalyzeSegmentsEnabled: !Not [!Equals [!Select [10, !Ref UpdateCheck], "0"]]
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
@@ -809,7 +809,7 @@ Resources:
 
 
 ####################### ANALYZE SEGMENTS #######################
-  STMAnalyzeSegmentsRole:
+  STMAnalyzeSegmentsIAMRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -821,7 +821,8 @@ Resources:
             Action: sts:AssumeRole
 
   STMAnalyzeSegments:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Condition: STMAnalyzeSegmentsEnabled
+    Type: AWS::Serverless::Function
     Properties:
       Description: "Analyze the time we gain back between each bus station"
       Timeout: 840 # Timeout in seconds
@@ -836,13 +837,13 @@ Resources:
             API_URL_STM_TRIP: !Ref ApiUrlStmTrip
             API_URL_STM_VEHICLE: !Ref ApiUrlStmVehicle
             API_KEY_STM: !Ref ApiKeyStm
-  
+
   STMAnalyzeSegmentsPolicy:
     Type: AWS::IAM::Policy
     Properties:
       PolicyName: STMAnalyzeSegmentsPolicy
       Roles:
-        - !Ref STMAnalyzeSegmentsRole
+        - !Ref STMAnalyzeSegmentsIAMRole
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -851,54 +852,57 @@ Resources:
               - logs:CreateLogGroup
               - logs:CreateLogStream
               - logs:PutLogEvents
-            Resource: 
-              !Join 
+            Resource: !Join
               - ""
               - - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/"
-                - !Select [1, !Split [":function:", !GetAtt STMAnalyzeSegments.Arn]]
+                - !Select [
+                    1,
+                    !Split [
+                      ":function:",
+                      !GetAtt STMAnalyzeSegments.Arn,
+                    ],
+                  ]
                 - ":*"
 
-  STMAnalyzeSegmentsDataVersion:
-    Condition: SetSTMAnalyzeSegmentsData
+  STMAnalyzeSegmentsVersion:
+    Condition: STMAnalyzeSegmentsEnabled
     Type: AWS::Lambda::Version
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
     Properties:
-      FunctionName: !Ref SetSTMAnalyzeSegmentsData
+      FunctionName: !Ref STMAnalyzeSegments
 
-  SetSTMAnalyzeSegmentsDataAlias:
-    Condition: SetSTMAnalyzeSegmentsData
+  STMAnalyzeSegmentsAlias:
+    Condition: STMAnalyzeSegmentsEnabled
     Type: AWS::Lambda::Alias
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
     Properties:
-      FunctionName: !Ref SetSTMAnalyzeSegmentsData
-      FunctionVersion: !GetAtt SetSTMAnalyzeSegmentsDataVersion.Version
+      FunctionName: !Ref STMAnalyzeSegments
+      FunctionVersion: !GetAtt STMAnalyzeSegmentsVersion.Version
       Name: Live
   
-  SetSTMAnalyzeSegmentsDataTrigger:
+  STMAnalyzeSegmentsTrigger:
+    Condition: STMAnalyzeSegmentsEnabled
     Type: AWS::Events::Rule
     Properties:
-      Description: "Calls SetSTMAnalyzeSegmentsData every day at 3:00 AM"
-      ScheduleExpression: cron(0 3 * * *)
+      Description: "Calls STMAnalyzeSegments every day at 3:00 AM"
+      ScheduleExpression: cron(0 3 * * ? *)
       State: ENABLED
       Targets:
-        - Arn: !GetAtt SetSTMAnalyzeSegmentsData.Arn
+        - Arn: !GetAtt STMAnalyzeSegments.Arn
           Id: "TargetAnalyzeSegments"
           Input: >-
             {
               "input_bucket": "monitoring-mtl-stm-analytics",
-              "collection_name": "monitoring-mtl-stm-segments-analysis"
+              "collection_name": "monitoring-mtl-stm-segments-analysis",
               "timezone": "America/Montreal"
             }
           
-  SetSTMAnalyzeSegmentsDataPermission:
+  STMAnalyzeSegmentsPermission:
+    Condition: STMAnalyzeSegmentsEnabled
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !GetAtt SetSTMAnalyzeSegmentsData.Arn
+      FunctionName: !GetAtt STMAnalyzeSegments.Arn
       Principal: events.amazonaws.com
-      SourceArn: !GetAtt SetSTMAnalyzeSegmentsData.Arn
+      SourceArn: !GetAtt STMAnalyzeSegmentsTrigger.Arn
 
 ####################### CREATE DAILY STOPS INFO #######################
   STMCreateDailyStopsInfo:
@@ -1065,3 +1069,7 @@ Outputs:
   STMMergeDailyGTFSVechiclePositionsUpdateStatus:
     Description: "Has STMMergeDailyGTFSVechiclePositions been updated?"
     Value: !If [SetSTMMergeDailyGTFSVechiclePositions, !Join [" ", ["Yes. It is now version:",!GetAtt STMMergeDailyGTFSVechiclePositionsVersion.Version]], "No"]
+
+  STMAnalyzeSegmentsUpdateStatus:
+    Description: "Has STMAnalyzeSegments been updated?"
+    Value: !If [STMAnalyzeSegmentsEnabled, !Join [" ", ["Yes. It is now version:", !GetAtt STMAnalyzeSegmentsVersion.Version]], "No"]
