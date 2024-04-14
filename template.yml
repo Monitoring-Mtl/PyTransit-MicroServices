@@ -821,7 +821,6 @@ Resources:
             Action: sts:AssumeRole
 
   STMAnalyzeSegments:
-    Condition: STMAnalyzeSegmentsEnabled
     Type: AWS::Serverless::Function
     Properties:
       Description: "Analyze the time we gain back between each bus station"
@@ -866,12 +865,16 @@ Resources:
 
   STMAnalyzeSegmentsVersion:
     Condition: STMAnalyzeSegmentsEnabled
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Type: AWS::Lambda::Version
     Properties:
       FunctionName: !Ref STMAnalyzeSegments
 
   STMAnalyzeSegmentsAlias:
     Condition: STMAnalyzeSegmentsEnabled
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Type: AWS::Lambda::Alias
     Properties:
       FunctionName: !Ref STMAnalyzeSegments
@@ -879,7 +882,6 @@ Resources:
       Name: Live
   
   STMAnalyzeSegmentsTrigger:
-    Condition: STMAnalyzeSegmentsEnabled
     Type: AWS::Events::Rule
     Properties:
       Description: "Calls STMAnalyzeSegments every day at 3:00 AM"
@@ -896,7 +898,6 @@ Resources:
             }
           
   STMAnalyzeSegmentsPermission:
-    Condition: STMAnalyzeSegmentsEnabled
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
