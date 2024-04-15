@@ -29,7 +29,8 @@ class TestLambdaFunction(unittest.TestCase):
             lambda_handler({
                 'bucket_name': 'test-bucket', 
                 'url': 'http://test.url', 
-                'file_path': temp_file_path
+                'file_path': temp_file_path,
+                'collection_name': 'test-collection'
             }, None)
 
         # Verify that urlopen was called with the expected URL
@@ -51,7 +52,8 @@ class TestLambdaFunction(unittest.TestCase):
                 lambda_handler({
                     'bucket_name': 'test-bucket', 
                     'url': 'http://test.url', 
-                    'file_path': temp_file_path
+                    'file_path': temp_file_path,
+                    'collection_name': 'test-collection'
                 }, None)
 
             self.assertTrue("Simulated fetch failure" in str(context.exception))
@@ -83,7 +85,8 @@ class TestLambdaFunction(unittest.TestCase):
                 lambda_handler({
                     'bucket_name': 'test-bucket', 
                     'url': 'http://test.url', 
-                    'file_path': temp_file_path
+                    'file_path': temp_file_path,
+                    'collection_name': 'test-collection'
                 }, None)
 
 

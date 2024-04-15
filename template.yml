@@ -361,6 +361,7 @@ Resources:
           Input: >-
             {
               "bucket_name": "monitoring-mtl-bixi-gtfs-station-status-dev",
+              "collection_name": "bixi-gtfs-station-status",
               "url": "https://gbfs.velobixi.com/gbfs/en/station_status.json"
             }
   
@@ -673,6 +674,7 @@ Resources:
           Input: >-
             {
               "bucket_name": "monitoring-mtl-gtfs-static",
+              "collection_name": "stm-gtfs-static"
               "url": "https://www.stm.info/sites/default/files/gtfs/gtfs_stm.zip"
             }
           
