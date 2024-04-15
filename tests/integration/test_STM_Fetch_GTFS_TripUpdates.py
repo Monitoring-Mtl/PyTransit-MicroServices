@@ -19,7 +19,8 @@ class TestLambdaHandler(unittest.TestCase):
         mock_s3.upload_file.return_value = None
 
         event = {
-            'bucket_name': 'test-bucket'
+            'bucket_name': 'test-bucket',
+            'collection_name': 'test-collection'
         }
 
         lambda_handler(event, None)
