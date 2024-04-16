@@ -7,6 +7,9 @@ from urllib.request import Request, urlopen
 from datetime import datetime
 import pytz
 import os
+from pymongo.mongo_client import MongoClient
+from pymongo.server_api import ServerApi
+from pymongo.collection import Collection
 
 # Set up S3
 s3 = boto3.client('s3')
@@ -17,6 +20,7 @@ def lambda_handler(event, context):
     api_key = os.environ.get('API_KEY_STM')
 
     bucket_name = event['bucket_name']
+    mongo_collection = event['collection_name']
     timezone = event.get('timezone', 'America/Montreal')  # Default to 'America/Montreal' if not specified
 
     eastern = pytz.timezone(timezone)
@@ -41,6 +45,16 @@ def lambda_handler(event, context):
     # Check if 'entity' is in data, if so normalize it  A VALIDER !!!!! DF['entity'] pour accéder aux DATAs
     if 'entity' in json_data_dict:
         df = pd.json_normalize(json_data_dict['entity'], sep='_')
+
+        # Write to mongo
+        trip_updates = [{
+            'tripUpdateId': api_trip_update.get('id', None),
+            'timestamp': api_trip_update.get('tripUpdate', None).get('timestamp', None),
+            'trip': api_trip_update.get('tripUpdate', None).get('trip', None),
+            'stopTimeUpdate': api_trip_update.get('tripUpdate', None).get('stopTimeUpdate', None),
+        } for api_trip_update in json_data_dict['entity']]
+        write_trip_updates_to_mongo(mongo_collection, trip_updates)
+
     else:
         df = pd.DataFrame()
 
@@ -67,3 +81,16 @@ def lambda_handler(event, context):
             os.remove(temp_file_path)
         except Exception as e:
             print(f"Failed to delete temporary file: {e}")
+
+def get_mongo_collection(collection_name) -> Collection:
+    try:
+        atlas_uri = os.environ.get('ATLAS_URI')
+        db_name = os.environ.get('MONGO_DATABASE_NAME')
+        mongoClient = MongoClient(atlas_uri, server_api=ServerApi('1'), tls=True, tlsAllowInvalidCertificates=True)
+        db = mongoClient[db_name]
+        return db[collection_name]
+    except Exception as e:
+        print(e)
+
+def write_trip_updates_to_mongo(collection: Collection, trip_updates):
+    collection.insert_many(trip_updates)
